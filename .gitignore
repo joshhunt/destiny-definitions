@@ -1,0 +1,5 @@
+yarn-*.log
+node_modules/
+dist/
+.env
+*.sqlite

@@ -1,6 +1,6 @@
 yarn-*.log
 node_modules/
-dist/
+# dist/
 .env
 *.sqlite
 .cache/

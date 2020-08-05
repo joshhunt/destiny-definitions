@@ -96,7 +96,12 @@ export default async function diffManifestVersion(currentVersion: string) {
     })
   );
 
-  await uploadToS3(makeDiffKey(currentVersion), JSON.stringify(data));
+  await uploadToS3(
+    makeDiffKey(currentVersion),
+    JSON.stringify(data),
+    "application/json",
+    "public-read"
+  );
 
   return data;
 }

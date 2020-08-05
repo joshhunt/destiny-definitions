@@ -5,7 +5,6 @@ import { getManifest as getDbManifest } from "./db";
 import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
-import { makeDiffPages } from "./diffPages";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET;
@@ -33,20 +32,17 @@ async function main() {
     return;
   }
 
-  // console.log("Processing manifest");
-  // await processManifest(manifestData);
+  console.log("Processing manifest");
+  await processManifest(manifestData);
 
   console.log("Creating diff");
-  const diffData = await diffManifestVersion(manifestData.version);
+  await diffManifestVersion(manifestData.version);
 
-  console.log("Creating diff HTML");
-  makeDiffPages(manifestData.version, diffData);
+  console.log("Creating index");
+  await createIndex();
 
-  // console.log("Creating index");
-  // await createIndex();
-
-  // console.log("Finishing up");
-  // await finish(manifestData.version);
+  console.log("Finishing up");
+  await finish(manifestData.version);
 
   console.log("All done");
 }

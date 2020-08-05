@@ -2,11 +2,11 @@
   "name": "destiny-definitions",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "license": "MIT",
   "scripts": {
     "start": "tsc && node --experimental-specifier-resolution=node ./dist/index.js"
   },
-  "type": "module",
   "dependencies": {
     "@types/async": "^3.2.3",
     "@types/aws-sdk": "^2.7.0",
@@ -16,15 +16,18 @@
     "@types/react-dom": "^16.9.8",
     "@types/sqlite3": "^3.1.6",
     "async": "^3.2.0",
+    "autoprefixer": "^9.8.4",
     "aws-sdk": "^2.710.0",
     "axios": "^0.19.2",
     "bungie-api-ts": "^4.2.1",
     "dotenv": "^8.2.0",
     "lodash": "^4.17.19",
     "parcel": "^1.12.4",
+    "postcss-modules": "^3.2.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "sqlite3": "^5.0.0",
-    "typescript": "^3.9.6"
+    "typescript": "^3.9.6",
+    "typescript-plugin-css-modules": "^2.4.0"
   }
 }

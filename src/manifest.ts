@@ -67,7 +67,7 @@ async function processDefinitionTable(
   });
   const s3Key = makeDefinitionTableKey(version, tableName);
 
-  await uploadToS3(s3Key, resp.data);
+  await uploadToS3(s3Key, resp.data, "application/json", "public-read");
 
   await saveDefinitionTableRow({
     name: tableName,

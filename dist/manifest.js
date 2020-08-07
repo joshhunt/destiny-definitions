@@ -36,26 +36,23 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 import path from "path";
 import axios from "axios";
-import asyncLib from "async";
 import { saveManifestRow, saveDefinitionTableRow } from "./db";
 import uploadToS3, { makeManifestKey, makeDefinitionTableKey, makeMobileWorldContentKey, } from "./s3";
 var LANGUAGE = "en";
-var TABLE_LIMIT = 5;
 export default function processManifest(manifest) {
     return __awaiter(this, void 0, void 0, function () {
-        var version, manifestS3Key, tables, cb;
-        var _this = this;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var version, manifestS3Key, tables, entries, _i, entries_1, _a, tableName, bungiePath;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
                     version = manifest.version;
                     manifestS3Key = makeManifestKey(version);
                     return [4 /*yield*/, uploadToS3(manifestS3Key, JSON.stringify(manifest))];
                 case 1:
-                    _a.sent();
+                    _b.sent();
                     return [4 /*yield*/, uploadMobileWorldContent(manifest)];
                 case 2:
-                    _a.sent();
+                    _b.sent();
                     console.log("Saving manifest to DB");
                     return [4 /*yield*/, saveManifestRow({
                             version: version,
@@ -63,23 +60,22 @@ export default function processManifest(manifest) {
                             s3Key: manifestS3Key,
                         })];
                 case 3:
-                    _a.sent();
+                    _b.sent();
                     tables = manifest.jsonWorldComponentContentPaths[LANGUAGE];
-                    cb = asyncLib.asyncify(function (_a) {
-                        var tableName = _a[0], bungiePath = _a[1];
-                        return __awaiter(_this, void 0, void 0, function () {
-                            return __generator(this, function (_b) {
-                                switch (_b.label) {
-                                    case 0: return [4 /*yield*/, processDefinitionTable(tableName, bungiePath, version)];
-                                    case 1: return [2 /*return*/, _b.sent()];
-                                }
-                            });
-                        });
-                    });
-                    return [4 /*yield*/, asyncLib.eachLimit(Object.entries(tables), TABLE_LIMIT, cb)];
+                    entries = Object.entries(tables);
+                    _i = 0, entries_1 = entries;
+                    _b.label = 4;
                 case 4:
-                    _a.sent();
-                    return [2 /*return*/];
+                    if (!(_i < entries_1.length)) return [3 /*break*/, 7];
+                    _a = entries_1[_i], tableName = _a[0], bungiePath = _a[1];
+                    return [4 /*yield*/, processDefinitionTable(tableName, bungiePath, version)];
+                case 5:
+                    _b.sent();
+                    _b.label = 6;
+                case 6:
+                    _i++;
+                    return [3 /*break*/, 4];
+                case 7: return [2 /*return*/];
             }
         });
     });

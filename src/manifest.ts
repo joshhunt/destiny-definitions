@@ -11,7 +11,6 @@ import uploadToS3, {
 } from "./s3";
 
 const LANGUAGE = "en";
-const TABLE_LIMIT = 5;
 
 export default async function processManifest(manifest: DestinyManifest) {
   const { version } = manifest;
@@ -30,13 +29,10 @@ export default async function processManifest(manifest: DestinyManifest) {
 
   const tables = manifest.jsonWorldComponentContentPaths[LANGUAGE];
 
-  const cb = asyncLib.asyncify(
-    async ([tableName, bungiePath]: [string, string]) => {
-      return await processDefinitionTable(tableName, bungiePath, version);
-    }
-  );
-
-  await asyncLib.eachLimit(Object.entries(tables), TABLE_LIMIT, cb);
+  const entries = Object.entries(tables);
+  for (const [tableName, bungiePath] of entries) {
+    await processDefinitionTable(tableName, bungiePath, version);
+  }
 }
 
 async function uploadMobileWorldContent(manifest: DestinyManifest) {

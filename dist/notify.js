@@ -1,14 +1,3 @@
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -46,67 +35,82 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 import dotenv from "dotenv";
-import { getManifest } from "./bungie";
-import { getManifest as getDbManifest } from "./db";
-import processManifest from "./manifest";
-import { createIndex, finish } from "./extraTasks";
-import diffManifestVersion from "./diff";
-import notify from "./notify";
+import axios from "axios";
+import discordWebhook from "discord-webhook-node";
+var Webhook = discordWebhook.Webhook, MessageBuilder = discordWebhook.MessageBuilder;
 dotenv.config();
-var S3_BUCKET = process.env.S3_BUCKET;
-if (!S3_BUCKET) {
-    throw new Error("S3_BUCKET not defined");
+if (!process.env.DISCORD_WEBHOOK) {
+    throw new Error("process.env.DISCORD_WEBHOOK not defined");
 }
-var LANGUAGE = "en";
-function main() {
+if (!process.env.NETLIFY_WEBOOK) {
+    throw new Error("process.env.NETLIFY_WEBOOK not defined");
+}
+var hook = new Webhook(process.env.DISCORD_WEBHOOK);
+function notifyDiscord(version, diffData) {
     return __awaiter(this, void 0, void 0, function () {
-        var force, resp, manifestData, prevManifest, l, diffResults;
+        var embed;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    force = process.argv.some(function (v) { return v.includes("force"); });
-                    console.log("Loading manifest");
-                    return [4 /*yield*/, getManifest()];
+                    embed = new MessageBuilder()
+                        .setTitle("Definitions have updated")
+                        .setURL("https://destiny-definitions.netlify.app/version/" + version)
+                        .setDescription("Version: " + version);
+                    Object.entries(diffData)
+                        .filter(function (_a) {
+                        var tableName = _a[0], tableDiff = _a[1];
+                        return Object.values(tableDiff).some(function (v) { return v.length > 0; });
+                    })
+                        .forEach(function (_a) {
+                        var tableName = _a[0], tableDiff = _a[1];
+                        var message = Object.entries(tableDiff)
+                            .filter(function (_a) {
+                            var diffItems = _a[1];
+                            return diffItems.length > 0;
+                        })
+                            .map(function (_a) {
+                            var diffName = _a[0], diffItems = _a[1];
+                            return diffItems.length + " " + diffName;
+                        })
+                            .join(", ");
+                        embed = embed.addField(tableName, message);
+                    });
+                    embed = embed.setColor("#2ecc71").setTimestamp();
+                    return [4 /*yield*/, hook.send(embed)];
                 case 1:
-                    resp = _a.sent();
-                    manifestData = resp.data.Response;
-                    return [4 /*yield*/, getDbManifest(manifestData.version)];
-                case 2:
-                    prevManifest = _a.sent();
-                    if (!force && prevManifest) {
-                        l = __assign({}, prevManifest);
-                        delete l.data;
-                        console.log("Manifest already exists");
-                        console.log(l);
-                        return [2 /*return*/];
-                    }
-                    console.log("Processing manifest");
-                    return [4 /*yield*/, processManifest(manifestData)];
-                case 3:
                     _a.sent();
-                    console.log("Creating diff");
-                    return [4 /*yield*/, diffManifestVersion(manifestData.version)];
-                case 4:
-                    diffResults = _a.sent();
-                    console.log("Creating index");
-                    return [4 /*yield*/, createIndex()];
-                case 5:
-                    _a.sent();
-                    console.log("Finishing up");
-                    return [4 /*yield*/, finish(manifestData.version)];
-                case 6:
-                    _a.sent();
-                    console.log("Sending notifications");
-                    return [4 /*yield*/, notify(manifestData.version, diffResults)];
-                case 7:
-                    _a.sent();
-                    console.log("All done");
                     return [2 /*return*/];
             }
         });
     });
 }
-main().catch(function (err) {
-    console.error("Uncaught top-level error");
-    console.error(err);
-});
+function notifyNetlify(version) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, axios.post(process.env.NETLIFY_WEBOOK + "?trigger_title=Manifest+version+" + version, {})];
+                case 1:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+export default function notify(version, diffData) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    console.log("Sending Discord notification");
+                    return [4 /*yield*/, notifyDiscord(version, diffData)];
+                case 1:
+                    _a.sent();
+                    console.log("Triggering Netlify build");
+                    return [4 /*yield*/, notifyNetlify(version)];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
+}

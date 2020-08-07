@@ -33,13 +33,13 @@ type AnyDefinition = AnyDefinitionTable[keyof AnyDefinitionTable];
 export type DiffItem = AnyDefinition["hash"];
 
 export interface TableDiff {
-  removed: DiffItem[];
   added: DiffItem[];
   unclassified: DiffItem[];
+  removed: DiffItem[];
   reclassified: DiffItem[];
 }
 export type AllTableDiff = {
-  [name: string]: TableDiff;
+  [tableName: string]: TableDiff;
 };
 
 export default async function diffManifestVersion(currentVersion: string) {
@@ -88,9 +88,9 @@ export default async function diffManifestVersion(currentVersion: string) {
       logDiff(currentTable.name, payload);
 
       return {
-        removed,
         added,
         unclassified,
+        removed,
         reclassified,
       };
     })

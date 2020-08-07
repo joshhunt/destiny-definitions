@@ -90,9 +90,9 @@ export default function diffManifestVersion(currentVersion) {
                                         payload = { removed: removed, added: added, unclassified: unclassified, reclassified: reclassified };
                                         logDiff(currentTable.name, payload);
                                         return [2 /*return*/, {
-                                                removed: removed,
                                                 added: added,
                                                 unclassified: unclassified,
+                                                removed: removed,
                                                 reclassified: reclassified,
                                             }];
                                 }

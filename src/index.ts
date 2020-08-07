@@ -5,6 +5,7 @@ import { getManifest as getDbManifest } from "./db";
 import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
+import notify from "./notify";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET;
@@ -36,13 +37,16 @@ async function main() {
   await processManifest(manifestData);
 
   console.log("Creating diff");
-  await diffManifestVersion(manifestData.version);
+  const diffResults = await diffManifestVersion(manifestData.version);
 
   console.log("Creating index");
   await createIndex();
 
   console.log("Finishing up");
   await finish(manifestData.version);
+
+  console.log("Sending notifications");
+  await notify(manifestData.version, diffResults);
 
   console.log("All done");
 }

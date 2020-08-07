@@ -27,6 +27,10 @@ export default async function uploadToS3(
   contentType: string = "application/json",
   acl?: string
 ) {
+  // return {
+  //   key,
+  // };
+
   const putResponse = await s3
     .putObject({
       Bucket: S3_BUCKET,

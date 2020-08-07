@@ -12,7 +12,7 @@ import {
 import uploadToS3, { getFromS3, makeDiffKey } from "./s3";
 import { AllDestinyManifestComponents } from "bungie-api-ts/destiny2";
 
-const TABLE_CONCURRENCY = 100;
+const TABLE_CONCURRENCY = 1;
 
 function validateVersionOrder(allManifests: Manifest[]): Manifest[] {
   const byVersion = sortBy(allManifests, (v) => v.version);

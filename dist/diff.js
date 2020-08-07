@@ -39,7 +39,7 @@ import sortBy from "lodash/sortBy";
 import keyBy from "lodash/keyBy";
 import { getAllManifests, getTablesForVersion, } from "./db";
 import uploadToS3, { getFromS3, makeDiffKey } from "./s3";
-var TABLE_CONCURRENCY = 100;
+var TABLE_CONCURRENCY = 1;
 function validateVersionOrder(allManifests) {
     var byVersion = sortBy(allManifests, function (v) { return v.version; });
     var byCreatedAt = sortBy(allManifests, function (v) { return v.createdAt; });

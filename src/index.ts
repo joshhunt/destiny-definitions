@@ -41,7 +41,7 @@ async function main() {
   const prevManifest = await getDbManifest(manifestData.version);
 
   if (!force && prevManifest) {
-    const l = { ...prevManifest };
+    const l = { ...prevManifest } as any;
     delete l.data;
     console.log("Manifest already exists in database");
     console.log(l);

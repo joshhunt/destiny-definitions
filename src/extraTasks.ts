@@ -1,16 +1,12 @@
-import fs from "fs";
-import util from "util";
+import fs from "fs-extra";
 
 import { dbFilePath, getAllManifests } from "./db";
 import uploadToS3, {
   makeDatabaseKey,
   makeVersionedDatabaseKey,
   makeIndexKey,
-  makeLatestVersionKey,
 } from "./s3";
 import getDb from "./db/setup";
-
-const readFile = util.promisify(fs.readFile);
 
 export async function createIndex() {
   const allManifests = await getAllManifests();
@@ -40,9 +36,9 @@ export async function finish(version: string) {
         console.error(error);
       }
 
-      const dbFile = await readFile(dbFilePath);
+      const dbFile = await fs.readFile(dbFilePath);
 
-      await uploadToS3(makeLatestVersionKey(), JSON.stringify({ v: version }));
+      await fs.writeJSON("./latestVersion.json", { version });
 
       await uploadToS3(makeDatabaseKey(), dbFile, "application/vnd.sqlite3");
       await uploadToS3(

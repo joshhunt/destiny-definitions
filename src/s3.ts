@@ -74,7 +74,6 @@ export default async function uploadToS3(
 
 export const makeIndexKey = () => `index.json`;
 export const makeDatabaseKey = () => `database.sqlite`;
-export const makeLatestVersionKey = () => `latestVersion.json`;
 
 export const makeVersionedDatabaseKey = (version: string) =>
   `versions/${version}/database.sqlite`;

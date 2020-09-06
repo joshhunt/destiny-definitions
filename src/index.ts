@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import fs from "fs-extra";
 
 import { getManifest } from "./bungie";
 import { getManifest as getDbManifest } from "./db";
@@ -6,7 +7,6 @@ import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
 import notify from "./notify";
-import { makeLatestVersionKey, getFromS3 } from "./s3";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET;
@@ -21,11 +21,11 @@ async function main() {
   console.log("Loading manifest");
   const [manifestResp, latestUploaded] = await Promise.all([
     getManifest(),
-    getFromS3<{ v: string }>(makeLatestVersionKey()),
+    (await fs.readJSON("./latestVersion.json")) as Promise<{ version: string }>,
   ]);
 
   const manifestData = manifestResp.data.Response;
-  if (!force && manifestData.version === latestUploaded.v) {
+  if (!force && manifestData.version === latestUploaded.version) {
     console.log("Manifest already exists in latestVersion.json");
     return;
   }
@@ -37,6 +37,11 @@ async function main() {
     delete l.data;
     console.log("Manifest already exists in database");
     console.log(l);
+
+    await fs.writeJSON("./latestVersion.json", {
+      version: manifestData.version,
+    });
+
     return;
   }
 

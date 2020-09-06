@@ -45,12 +45,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import fs from "fs";
-import util from "util";
+import fs from "fs-extra";
 import { dbFilePath, getAllManifests } from "./db";
-import uploadToS3, { makeDatabaseKey, makeVersionedDatabaseKey, makeIndexKey, makeLatestVersionKey, } from "./s3";
+import uploadToS3, { makeDatabaseKey, makeVersionedDatabaseKey, makeIndexKey, } from "./s3";
 import getDb from "./db/setup";
-var readFile = util.promisify(fs.readFile);
 export function createIndex() {
     return __awaiter(this, void 0, void 0, function () {
         var allManifests, index;
@@ -86,10 +84,10 @@ export function finish(version) {
                                                 console.error("Error closing database");
                                                 console.error(error);
                                             }
-                                            return [4 /*yield*/, readFile(dbFilePath)];
+                                            return [4 /*yield*/, fs.readFile(dbFilePath)];
                                         case 1:
                                             dbFile = _a.sent();
-                                            return [4 /*yield*/, uploadToS3(makeLatestVersionKey(), JSON.stringify({ v: version }))];
+                                            return [4 /*yield*/, fs.writeJSON("./latestVersion.json", { version: version })];
                                         case 2:
                                             _a.sent();
                                             return [4 /*yield*/, uploadToS3(makeDatabaseKey(), dbFile, "application/vnd.sqlite3")];

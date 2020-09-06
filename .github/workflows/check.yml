@@ -2,6 +2,8 @@ name: Scheduled checks
 
 on:
   push:
+  schedule:
+    - cron: "*/10 * * * *"
   workflow_dispatch:
     inputs:
       args:
@@ -14,6 +16,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
 
       - name: Use Node.js
         uses: actions/setup-node@v1
@@ -32,3 +37,29 @@ jobs:
           BUNGIE_API_KEY: ${{ secrets.BUNGIE_API_KEY }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           NETLIFY_WEBOOK: ${{ secrets.NETLIFY_WEBOOK }}
+
+      - name: Check if there were changes
+        id: code-changed
+        run: echo ::set-output name=dirty::"$(git status --porcelain)"
+
+      - name: Get version
+        if: steps.code-changed.outputs.dirty
+        id: version
+        uses: notiz-dev/github-action-json-property@release
+        with:
+          path: "latestVersion.json"
+          prop_path: "version"
+
+      - name: Commit everything
+        if: steps.code-changed.outputs.dirty
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -am "Update to Bungie manifest version ${{ steps.version.outputs.prop }}"
+
+      - name: Push changes
+        if: steps.code-changed.outputs.dirty
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

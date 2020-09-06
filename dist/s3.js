@@ -109,7 +109,6 @@ export default function uploadToS3(key, body, contentType, acl) {
 }
 export var makeIndexKey = function () { return "index.json"; };
 export var makeDatabaseKey = function () { return "database.sqlite"; };
-export var makeLatestVersionKey = function () { return "latestVersion.json"; };
 export var makeVersionedDatabaseKey = function (version) {
     return "versions/" + version + "/database.sqlite";
 };

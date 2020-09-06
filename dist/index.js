@@ -65,6 +65,8 @@ function main() {
             switch (_e.label) {
                 case 0:
                     force = process.argv.some(function (v) { return v.includes("force"); });
+                    force &&
+                        console.log("*** Force is set to true, so it's going to run regardless! ***");
                     console.log("Loading manifest");
                     _c = (_b = Promise).all;
                     _d = [getManifest()];
@@ -75,6 +77,8 @@ function main() {
                 case 2:
                     _a = _e.sent(), manifestResp = _a[0], latestUploaded = _a[1];
                     manifestData = manifestResp.data.Response;
+                    console.log("latestVersion.json version: " + latestUploaded.version);
+                    console.log("Current API manifest version: " + manifestData.version);
                     if (!force && manifestData.version === latestUploaded.version) {
                         console.log("Manifest already exists in latestVersion.json");
                         return [2 /*return*/];

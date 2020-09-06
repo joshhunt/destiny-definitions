@@ -17,6 +17,10 @@ if (!S3_BUCKET) {
 
 async function main() {
   const force = process.argv.some((v) => v.includes("force"));
+  force &&
+    console.log(
+      "*** Force is set to true, so it's going to run regardless! ***"
+    );
 
   console.log("Loading manifest");
   const [manifestResp, latestUploaded] = await Promise.all([
@@ -25,6 +29,10 @@ async function main() {
   ]);
 
   const manifestData = manifestResp.data.Response;
+
+  console.log(`latestVersion.json version: ${latestUploaded.version}`);
+  console.log(`Current API manifest version: ${manifestData.version}`);
+
   if (!force && manifestData.version === latestUploaded.version) {
     console.log("Manifest already exists in latestVersion.json");
     return;

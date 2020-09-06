@@ -34,6 +34,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+import fs from "fs";
 import dotenv from "dotenv";
 import AWS from "aws-sdk";
 dotenv.config();
@@ -56,6 +57,28 @@ export function getFromS3(key) {
                     obj = JSON.parse(resp.Body.toString("utf-8"));
                     return [2 /*return*/, obj];
             }
+        });
+    });
+}
+export function downloadFromS3(key, destPath) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            return [2 /*return*/, new Promise(function (resolve, reject) {
+                    var readStream = s3
+                        .getObject({ Key: key, Bucket: S3_BUCKET })
+                        .createReadStream();
+                    var writeStream = fs.createWriteStream(destPath);
+                    readStream.on("end", function () { return resolve(); });
+                    readStream.on("error", function (err) {
+                        console.error("Error with the read stream", err);
+                        reject(err);
+                    });
+                    writeStream.on("error", function (err) {
+                        console.error("Error with the write stream", err);
+                        reject(err);
+                    });
+                    readStream.pipe(writeStream);
+                })];
         });
     });
 }
@@ -86,6 +109,7 @@ export default function uploadToS3(key, body, contentType, acl) {
 }
 export var makeIndexKey = function () { return "index.json"; };
 export var makeDatabaseKey = function () { return "database.sqlite"; };
+export var makeLatestVersionKey = function () { return "latestVersion.json"; };
 export var makeVersionedDatabaseKey = function (version) {
     return "versions/" + version + "/database.sqlite";
 };

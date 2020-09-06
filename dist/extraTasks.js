@@ -47,8 +47,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 import fs from "fs";
 import util from "util";
-import { db, dbFilePath, getAllManifests } from "./db";
-import uploadToS3, { makeDatabaseKey, makeVersionedDatabaseKey, makeIndexKey, } from "./s3";
+import { dbFilePath, getAllManifests } from "./db";
+import uploadToS3, { makeDatabaseKey, makeVersionedDatabaseKey, makeIndexKey, makeLatestVersionKey, } from "./s3";
+import getDb from "./db/setup";
 var readFile = util.promisify(fs.readFile);
 export function createIndex() {
     return __awaiter(this, void 0, void 0, function () {
@@ -68,33 +69,42 @@ export function createIndex() {
 }
 export function finish(version) {
     return __awaiter(this, void 0, void 0, function () {
+        var db;
         var _this = this;
         return __generator(this, function (_a) {
-            return [2 /*return*/, new Promise(function (resolve) {
-                    db.close(function (error) { return __awaiter(_this, void 0, void 0, function () {
-                        var dbFile;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    if (error) {
-                                        console.error("Error closing database");
-                                        console.error(error);
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getDb()];
+                case 1:
+                    db = (_a.sent()).db;
+                    return [2 /*return*/, new Promise(function (resolve) {
+                            db.close(function (error) { return __awaiter(_this, void 0, void 0, function () {
+                                var dbFile;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0:
+                                            if (error) {
+                                                console.error("Error closing database");
+                                                console.error(error);
+                                            }
+                                            return [4 /*yield*/, readFile(dbFilePath)];
+                                        case 1:
+                                            dbFile = _a.sent();
+                                            return [4 /*yield*/, uploadToS3(makeLatestVersionKey(), JSON.stringify({ v: version }))];
+                                        case 2:
+                                            _a.sent();
+                                            return [4 /*yield*/, uploadToS3(makeDatabaseKey(), dbFile, "application/vnd.sqlite3")];
+                                        case 3:
+                                            _a.sent();
+                                            return [4 /*yield*/, uploadToS3(makeVersionedDatabaseKey(version), dbFile, "application/vnd.sqlite3")];
+                                        case 4:
+                                            _a.sent();
+                                            resolve();
+                                            return [2 /*return*/];
                                     }
-                                    return [4 /*yield*/, readFile(dbFilePath)];
-                                case 1:
-                                    dbFile = _a.sent();
-                                    return [4 /*yield*/, uploadToS3(makeDatabaseKey(), dbFile, "application/vnd.sqlite3")];
-                                case 2:
-                                    _a.sent();
-                                    return [4 /*yield*/, uploadToS3(makeVersionedDatabaseKey(version), dbFile, "application/vnd.sqlite3")];
-                                case 3:
-                                    _a.sent();
-                                    resolve();
-                                    return [2 /*return*/];
-                            }
-                        });
-                    }); });
-                })];
+                                });
+                            }); });
+                        })];
+            }
         });
     });
 }

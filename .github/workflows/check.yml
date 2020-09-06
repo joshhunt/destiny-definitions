@@ -1,0 +1,27 @@
+name: Scheduled checks
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: "Additional arguments"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run script
+        run: yarn run start ${{ github.event.inputs.args }}

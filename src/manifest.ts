@@ -1,6 +1,5 @@
 import path from "path";
 import axios from "axios";
-import asyncLib from "async";
 
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import { saveManifestRow, saveDefinitionTableRow, getManifest } from "./db";
@@ -57,6 +56,7 @@ async function processDefinitionTable(
   version: string
 ) {
   console.log(`Processing table ${tableName}`);
+
   const resp = await axios.get(`https://www.bungie.net${bungiePath}`, {
     transformResponse: (res: any) => res,
     responseType: "json",

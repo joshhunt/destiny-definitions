@@ -1,11 +1,7 @@
-import util from "util";
 import { DestinyManifest } from "bungie-api-ts/destiny2";
-import { db as _db, dbFilePath as _dbFilePath } from "./setup";
+import getDb, { dbFilePath as _dbFilePath } from "./setup";
 
-export const db = _db;
 export const dbFilePath = _dbFilePath;
-
-const all = util.promisify(db.all.bind(db));
 
 export interface Manifest {
   version: string;
@@ -15,7 +11,9 @@ export interface Manifest {
   updatedAt: Date;
 }
 
-function deserialiseManifest(obj: any): Manifest {
+type DbRecord = Record<string, string>;
+
+function deserialiseManifest(obj: DbRecord): Manifest {
   return {
     version: obj.version,
     s3Key: obj.s3Key,
@@ -26,44 +24,41 @@ function deserialiseManifest(obj: any): Manifest {
 }
 
 export async function getAllManifests(): Promise<Manifest[]> {
+  const { all } = await getDb();
+
   const rows = (await all("SELECT * from Manifest;")) as any[];
 
   return rows.map(deserialiseManifest);
 }
 
-export function getManifest(version: string): Promise<Manifest | null> {
-  return new Promise((resolve, reject) => {
-    db.get(
-      `SELECT * from Manifest WHERE version = $version;`,
-      {
-        $version: version,
-      },
-      (err, result: any) => {
-        if (err) {
-          return reject(err);
-        }
+export async function getManifest(version: string): Promise<Manifest | null> {
+  const { get } = await getDb();
+  const result = await get<DbRecord>(
+    `SELECT * from Manifest WHERE version = $version;`,
+    {
+      $version: version,
+    }
+  );
 
-        if (!result) {
-          return resolve(null);
-        }
+  if (!result) {
+    return null;
+  }
 
-        resolve(deserialiseManifest(result));
-      }
-    );
-  });
+  return deserialiseManifest(result);
 }
 
-export function saveManifestRow(
+export async function saveManifestRow(
   manifest: Omit<Manifest, "createdAt" | "updatedAt">
 ) {
-  return new Promise((resolve, reject) => {
-    const payload: Manifest = {
-      ...manifest,
-      updatedAt: new Date(),
-      createdAt: new Date(),
-    };
+  const { run } = await getDb();
 
-    const sql = `
+  const payload: Manifest = {
+    ...manifest,
+    updatedAt: new Date(),
+    createdAt: new Date(),
+  };
+
+  const sql = `
       INSERT INTO Manifest(version, s3Key, createdAt, updatedAt, data)
         VALUES($version, $s3Key, $createdAt, $updatedAt, $data)
         ON CONFLICT(version) DO UPDATE SET
@@ -73,20 +68,16 @@ export function saveManifestRow(
       ;
     `;
 
-    const params = {
-      $version: payload.version,
-      $s3Key: payload.s3Key,
-      $data: JSON.stringify(payload.data),
-      $createdAt: payload.createdAt.toISOString(),
-      $updatedAt: payload.updatedAt.toISOString(),
-    };
+  const params = {
+    $version: payload.version,
+    $s3Key: payload.s3Key,
+    $data: JSON.stringify(payload.data),
+    $createdAt: payload.createdAt.toISOString(),
+    $updatedAt: payload.updatedAt.toISOString(),
+  };
 
-    const cb = (err: Error | null, result: any) => {
-      return err ? reject(err) : resolve(result);
-    };
-
-    db.run(sql, params, cb);
-  });
+  const result = run(sql, params);
+  return result;
 }
 
 export interface DefinitionTable {
@@ -99,44 +90,40 @@ export interface DefinitionTable {
   updatedAt: Date;
 }
 
-export function saveDefinitionTableRow(
+export async function saveDefinitionTableRow(
   defTable: Omit<DefinitionTable, "createdAt" | "updatedAt">
 ) {
-  return new Promise((resolve, reject) => {
-    const payload: DefinitionTable = {
-      ...defTable,
-      updatedAt: new Date(),
-      createdAt: new Date(),
-    };
+  const { run } = await getDb();
 
-    const sql = `
-      INSERT INTO DefinitionTable(name, bungiePath, s3Key, manifestVersion, createdAt, updatedAt)
-        VALUES($name, $bungiePath, $s3Key, $manifestVersion, $createdAt, $updatedAt)
-        ON CONFLICT(name, manifestVersion) DO UPDATE SET
-          bungiePath=excluded.bungiePath,
-          s3Key=excluded.s3Key,
-          updatedAt=excluded.updatedAt
-      ;
-    `;
+  const payload: DefinitionTable = {
+    ...defTable,
+    updatedAt: new Date(),
+    createdAt: new Date(),
+  };
 
-    const params = {
-      $name: payload.name,
-      $bungiePath: payload.bungiePath,
-      $s3Key: payload.s3Key,
-      $manifestVersion: payload.manifestVersion,
-      $createdAt: payload.createdAt.toISOString(),
-      $updatedAt: payload.updatedAt.toISOString(),
-    };
+  const sql = `
+    INSERT INTO DefinitionTable(name, bungiePath, s3Key, manifestVersion, createdAt, updatedAt)
+      VALUES($name, $bungiePath, $s3Key, $manifestVersion, $createdAt, $updatedAt)
+      ON CONFLICT(name, manifestVersion) DO UPDATE SET
+        bungiePath=excluded.bungiePath,
+        s3Key=excluded.s3Key,
+        updatedAt=excluded.updatedAt
+    ;
+  `;
 
-    const cb = (err: Error | null, result: any) => {
-      return err ? reject(err) : resolve(result);
-    };
+  const params = {
+    $name: payload.name,
+    $bungiePath: payload.bungiePath,
+    $s3Key: payload.s3Key,
+    $manifestVersion: payload.manifestVersion,
+    $createdAt: payload.createdAt.toISOString(),
+    $updatedAt: payload.updatedAt.toISOString(),
+  };
 
-    db.run(sql, params, cb);
-  });
+  return run(sql, params);
 }
 
-function deserialiseDefinitionTable(obj: any): DefinitionTable {
+function deserialiseDefinitionTable(obj: DbRecord): DefinitionTable {
   return {
     name: obj.name,
     bungiePath: obj.bungiePath,
@@ -150,9 +137,11 @@ function deserialiseDefinitionTable(obj: any): DefinitionTable {
 export async function getTablesForVersion(
   version: string
 ): Promise<DefinitionTable[]> {
-  const rows = (await all(
+  const { all } = await getDb();
+
+  const rows = await all<DbRecord>(
     `SELECT * from DefinitionTable WHERE manifestVersion = "${version}";`
-  )) as any[];
+  );
 
   return rows.map(deserialiseDefinitionTable);
 }

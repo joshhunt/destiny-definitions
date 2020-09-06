@@ -52,54 +52,61 @@ import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
 import notify from "./notify";
+import { makeLatestVersionKey, getFromS3 } from "./s3";
 dotenv.config();
 var S3_BUCKET = process.env.S3_BUCKET;
 if (!S3_BUCKET) {
     throw new Error("S3_BUCKET not defined");
 }
-var LANGUAGE = "en";
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var force, resp, manifestData, prevManifest, l, diffResults;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var force, _a, manifestResp, latestUploaded, manifestData, prevManifest, l, diffResults;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
                     force = process.argv.some(function (v) { return v.includes("force"); });
                     console.log("Loading manifest");
-                    return [4 /*yield*/, getManifest()];
+                    return [4 /*yield*/, Promise.all([
+                            getManifest(),
+                            getFromS3(makeLatestVersionKey()),
+                        ])];
                 case 1:
-                    resp = _a.sent();
-                    manifestData = resp.data.Response;
+                    _a = _b.sent(), manifestResp = _a[0], latestUploaded = _a[1];
+                    manifestData = manifestResp.data.Response;
+                    if (!force && manifestData.version === latestUploaded.v) {
+                        console.log("Manifest already exists in latestVersion.json");
+                        return [2 /*return*/];
+                    }
                     return [4 /*yield*/, getDbManifest(manifestData.version)];
                 case 2:
-                    prevManifest = _a.sent();
+                    prevManifest = _b.sent();
                     if (!force && prevManifest) {
                         l = __assign({}, prevManifest);
                         delete l.data;
-                        console.log("Manifest already exists");
+                        console.log("Manifest already exists in database");
                         console.log(l);
                         return [2 /*return*/];
                     }
                     console.log("Processing manifest");
                     return [4 /*yield*/, processManifest(manifestData)];
                 case 3:
-                    _a.sent();
+                    _b.sent();
                     console.log("Creating diff");
                     return [4 /*yield*/, diffManifestVersion(manifestData.version)];
                 case 4:
-                    diffResults = _a.sent();
+                    diffResults = _b.sent();
                     console.log("Creating index");
                     return [4 /*yield*/, createIndex()];
                 case 5:
-                    _a.sent();
+                    _b.sent();
                     console.log("Finishing up");
                     return [4 /*yield*/, finish(manifestData.version)];
                 case 6:
-                    _a.sent();
+                    _b.sent();
                     console.log("Sending notifications");
                     return [4 /*yield*/, notify(manifestData.version, diffResults)];
                 case 7:
-                    _a.sent();
+                    _b.sent();
                     console.log("All done");
                     return [2 /*return*/];
             }

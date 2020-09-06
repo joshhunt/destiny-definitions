@@ -45,11 +45,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import util from "util";
-import { db as _db, dbFilePath as _dbFilePath } from "./setup";
-export var db = _db;
+import getDb, { dbFilePath as _dbFilePath } from "./setup";
 export var dbFilePath = _dbFilePath;
-var all = util.promisify(db.all.bind(db));
 function deserialiseManifest(obj) {
     return {
         version: obj.version,
@@ -61,11 +58,14 @@ function deserialiseManifest(obj) {
 }
 export function getAllManifests() {
     return __awaiter(this, void 0, void 0, function () {
-        var rows;
+        var all, rows;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, all("SELECT * from Manifest;")];
+                case 0: return [4 /*yield*/, getDb()];
                 case 1:
+                    all = (_a.sent()).all;
+                    return [4 /*yield*/, all("SELECT * from Manifest;")];
+                case 2:
                     rows = (_a.sent());
                     return [2 /*return*/, rows.map(deserialiseManifest)];
             }
@@ -73,53 +73,70 @@ export function getAllManifests() {
     });
 }
 export function getManifest(version) {
-    return new Promise(function (resolve, reject) {
-        db.get("SELECT * from Manifest WHERE version = $version;", {
-            $version: version,
-        }, function (err, result) {
-            if (err) {
-                return reject(err);
+    return __awaiter(this, void 0, void 0, function () {
+        var get, result;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getDb()];
+                case 1:
+                    get = (_a.sent()).get;
+                    return [4 /*yield*/, get("SELECT * from Manifest WHERE version = $version;", {
+                            $version: version,
+                        })];
+                case 2:
+                    result = _a.sent();
+                    if (!result) {
+                        return [2 /*return*/, null];
+                    }
+                    return [2 /*return*/, deserialiseManifest(result)];
             }
-            if (!result) {
-                return resolve(null);
-            }
-            resolve(deserialiseManifest(result));
         });
     });
 }
 export function saveManifestRow(manifest) {
-    return new Promise(function (resolve, reject) {
-        var payload = __assign(__assign({}, manifest), { updatedAt: new Date(), createdAt: new Date() });
-        var sql = "\n      INSERT INTO Manifest(version, s3Key, createdAt, updatedAt, data)\n        VALUES($version, $s3Key, $createdAt, $updatedAt, $data)\n        ON CONFLICT(version) DO UPDATE SET\n          data=excluded.data,\n          s3Key=excluded.s3Key,\n          updatedAt=excluded.updatedAt\n      ;\n    ";
-        var params = {
-            $version: payload.version,
-            $s3Key: payload.s3Key,
-            $data: JSON.stringify(payload.data),
-            $createdAt: payload.createdAt.toISOString(),
-            $updatedAt: payload.updatedAt.toISOString(),
-        };
-        var cb = function (err, result) {
-            return err ? reject(err) : resolve(result);
-        };
-        db.run(sql, params, cb);
+    return __awaiter(this, void 0, void 0, function () {
+        var run, payload, sql, params, result;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getDb()];
+                case 1:
+                    run = (_a.sent()).run;
+                    payload = __assign(__assign({}, manifest), { updatedAt: new Date(), createdAt: new Date() });
+                    sql = "\n      INSERT INTO Manifest(version, s3Key, createdAt, updatedAt, data)\n        VALUES($version, $s3Key, $createdAt, $updatedAt, $data)\n        ON CONFLICT(version) DO UPDATE SET\n          data=excluded.data,\n          s3Key=excluded.s3Key,\n          updatedAt=excluded.updatedAt\n      ;\n    ";
+                    params = {
+                        $version: payload.version,
+                        $s3Key: payload.s3Key,
+                        $data: JSON.stringify(payload.data),
+                        $createdAt: payload.createdAt.toISOString(),
+                        $updatedAt: payload.updatedAt.toISOString(),
+                    };
+                    result = run(sql, params);
+                    return [2 /*return*/, result];
+            }
+        });
     });
 }
 export function saveDefinitionTableRow(defTable) {
-    return new Promise(function (resolve, reject) {
-        var payload = __assign(__assign({}, defTable), { updatedAt: new Date(), createdAt: new Date() });
-        var sql = "\n      INSERT INTO DefinitionTable(name, bungiePath, s3Key, manifestVersion, createdAt, updatedAt)\n        VALUES($name, $bungiePath, $s3Key, $manifestVersion, $createdAt, $updatedAt)\n        ON CONFLICT(name, manifestVersion) DO UPDATE SET\n          bungiePath=excluded.bungiePath,\n          s3Key=excluded.s3Key,\n          updatedAt=excluded.updatedAt\n      ;\n    ";
-        var params = {
-            $name: payload.name,
-            $bungiePath: payload.bungiePath,
-            $s3Key: payload.s3Key,
-            $manifestVersion: payload.manifestVersion,
-            $createdAt: payload.createdAt.toISOString(),
-            $updatedAt: payload.updatedAt.toISOString(),
-        };
-        var cb = function (err, result) {
-            return err ? reject(err) : resolve(result);
-        };
-        db.run(sql, params, cb);
+    return __awaiter(this, void 0, void 0, function () {
+        var run, payload, sql, params;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getDb()];
+                case 1:
+                    run = (_a.sent()).run;
+                    payload = __assign(__assign({}, defTable), { updatedAt: new Date(), createdAt: new Date() });
+                    sql = "\n    INSERT INTO DefinitionTable(name, bungiePath, s3Key, manifestVersion, createdAt, updatedAt)\n      VALUES($name, $bungiePath, $s3Key, $manifestVersion, $createdAt, $updatedAt)\n      ON CONFLICT(name, manifestVersion) DO UPDATE SET\n        bungiePath=excluded.bungiePath,\n        s3Key=excluded.s3Key,\n        updatedAt=excluded.updatedAt\n    ;\n  ";
+                    params = {
+                        $name: payload.name,
+                        $bungiePath: payload.bungiePath,
+                        $s3Key: payload.s3Key,
+                        $manifestVersion: payload.manifestVersion,
+                        $createdAt: payload.createdAt.toISOString(),
+                        $updatedAt: payload.updatedAt.toISOString(),
+                    };
+                    return [2 /*return*/, run(sql, params)];
+            }
+        });
     });
 }
 function deserialiseDefinitionTable(obj) {
@@ -134,12 +151,15 @@ function deserialiseDefinitionTable(obj) {
 }
 export function getTablesForVersion(version) {
     return __awaiter(this, void 0, void 0, function () {
-        var rows;
+        var all, rows;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, all("SELECT * from DefinitionTable WHERE manifestVersion = \"" + version + "\";")];
+                case 0: return [4 /*yield*/, getDb()];
                 case 1:
-                    rows = (_a.sent());
+                    all = (_a.sent()).all;
+                    return [4 /*yield*/, all("SELECT * from DefinitionTable WHERE manifestVersion = \"" + version + "\";")];
+                case 2:
+                    rows = _a.sent();
                     return [2 /*return*/, rows.map(deserialiseDefinitionTable)];
             }
         });

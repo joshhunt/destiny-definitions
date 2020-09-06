@@ -25,3 +25,10 @@ jobs:
 
       - name: Run script
         run: yarn run start ${{ github.event.inputs.args }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          BUNGIE_API_KEY: ${{ secrets.BUNGIE_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          NETLIFY_WEBOOK: ${{ secrets.NETLIFY_WEBOOK }}

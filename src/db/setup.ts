@@ -2,6 +2,7 @@ import util from "util";
 import fs from "fs-extra";
 import sqlite, { RunResult, Database } from "sqlite3";
 import { makeDatabaseKey, downloadFromS3 } from "../s3";
+import { schemaSql as versionSchemaSql } from "./version";
 sqlite.verbose();
 
 export const dbFilePath = "./database.sqlite";
@@ -18,10 +19,10 @@ interface Db {
 
 let initDbPromise: Promise<Db>;
 
-async function downloadDatabase() {
+async function downloadDatabase(forceLatest: boolean = false) {
   const dbExists = await fs.pathExists(dbFilePath);
 
-  if (dbExists) {
+  if (!forceLatest && dbExists) {
     console.log("Database already exists.");
     return;
   }
@@ -31,13 +32,13 @@ async function downloadDatabase() {
   await downloadFromS3(makeDatabaseKey(), dbFilePath);
 }
 
-export default function getDb() {
+export default function getDb(forceLatest: boolean = false) {
   if (initDbPromise) {
     return initDbPromise;
   }
 
   initDbPromise = new Promise(async (resolve, reject) => {
-    await downloadDatabase();
+    await downloadDatabase(forceLatest);
 
     const db = new sqlite.Database(dbFilePath);
     const all: Db["all"] = util.promisify(db.all.bind(db));
@@ -63,20 +64,8 @@ export default function getDb() {
     };
 
     db.serialize(() => {
-      db.get("PRAGMA foreign_keys = ON")
-        .get(
-          `
-          CREATE TABLE IF NOT EXISTS Manifest (
-            version TEXT PRIMARY KEY,
-            s3Key TEXT NOT NULL,
-            createdAt TEXT NOT NULL,
-            updatedAt TEXT NOT NULL,
-            data TEXT NOT NULL
-          );
+      db.get("PRAGMA foreign_keys = ON").get(versionSchemaSql).get(
         `
-        )
-        .get(
-          `
           CREATE TABLE IF NOT EXISTS DefinitionTable (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
@@ -89,8 +78,8 @@ export default function getDb() {
             UNIQUE(name, manifestVersion)
           );
         `,
-          dbCb
-        );
+        dbCb
+      );
     });
   });
 

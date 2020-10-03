@@ -41,7 +41,8 @@ import { makeDatabaseKey, downloadFromS3 } from "../s3";
 sqlite.verbose();
 export var dbFilePath = "./database.sqlite";
 var initDbPromise;
-function downloadDatabase() {
+function downloadDatabase(forceLatest) {
+    if (forceLatest === void 0) { forceLatest = false; }
     return __awaiter(this, void 0, void 0, function () {
         var dbExists;
         return __generator(this, function (_a) {
@@ -49,7 +50,7 @@ function downloadDatabase() {
                 case 0: return [4 /*yield*/, fs.pathExists(dbFilePath)];
                 case 1:
                     dbExists = _a.sent();
-                    if (dbExists) {
+                    if (!forceLatest && dbExists) {
                         console.log("Database already exists.");
                         return [2 /*return*/];
                     }
@@ -62,8 +63,9 @@ function downloadDatabase() {
         });
     });
 }
-export default function getDb() {
+export default function getDb(forceLatest) {
     var _this = this;
+    if (forceLatest === void 0) { forceLatest = false; }
     if (initDbPromise) {
         return initDbPromise;
     }
@@ -71,7 +73,7 @@ export default function getDb() {
         var db, all, get, run, dbPayload, dbCb;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, downloadDatabase()];
+                case 0: return [4 /*yield*/, downloadDatabase(forceLatest)];
                 case 1:
                     _a.sent();
                     db = new sqlite.Database(dbFilePath);

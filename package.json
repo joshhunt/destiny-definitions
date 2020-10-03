@@ -5,7 +5,9 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "start": "tsc && node --experimental-specifier-resolution=node ./dist/index.js"
+    "typescript": "echo Compiling Typescript... && tsc && node --experimental-specifier-resolution=node",
+    "start": "yarn typescript ./dist/index.js",
+    "migrate": "yarn typescript ./dist/migrate.js"
   },
   "dependencies": {
     "@types/async": "^3.2.3",

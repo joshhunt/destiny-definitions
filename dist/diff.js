@@ -37,35 +37,32 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 import asyncLib from "async";
 import sortBy from "lodash/sortBy";
 import keyBy from "lodash/keyBy";
-import { getAllManifests, getTablesForVersion, } from "./db";
+import { getTablesForVersion, getAllVerisons, } from "./db";
 import uploadToS3, { getFromS3, makeDiffKey } from "./s3";
+import { getManifestId } from "./utils";
 var TABLE_CONCURRENCY = 1;
-function validateVersionOrder(allManifests) {
-    var byVersion = sortBy(allManifests, function (v) { return v.version; });
-    var byCreatedAt = sortBy(allManifests, function (v) { return v.createdAt; });
-    for (var index in byVersion) {
-        if (byVersion[index] !== byCreatedAt[index]) {
-            throw new Error("Version and createdAt sort order is inconsistent");
-        }
-    }
-    return byVersion;
+function sortVersions(allManifests) {
+    // TODO: do we need to validate the order or something here?
+    return sortBy(allManifests, function (v) { return v.createdAt; });
 }
-export default function diffManifestVersion(currentVersion) {
+export default function diffManifestVersion(manifest) {
     var _a;
     return __awaiter(this, void 0, void 0, function () {
-        var allManifests, sortedManifests, currentVersionIndex, previousVersion, _b, _previousTables, _currentTables, previousTables, currentTables, data;
+        var manifestId, allManifests, sortedManifests, currentVersionIndex, previousVersionId, _b, _previousTables, _currentTables, previousTables, currentTables, data;
         var _this = this;
         return __generator(this, function (_c) {
             switch (_c.label) {
-                case 0: return [4 /*yield*/, getAllManifests()];
+                case 0:
+                    manifestId = getManifestId(manifest);
+                    return [4 /*yield*/, getAllVerisons()];
                 case 1:
                     allManifests = _c.sent();
-                    sortedManifests = validateVersionOrder(allManifests);
-                    currentVersionIndex = sortedManifests.findIndex(function (v) { return v.version == currentVersion; });
-                    previousVersion = (_a = sortedManifests[currentVersionIndex - 1]) === null || _a === void 0 ? void 0 : _a.version;
+                    sortedManifests = sortVersions(allManifests);
+                    currentVersionIndex = sortedManifests.findIndex(function (v) { return v.id == manifestId; });
+                    previousVersionId = (_a = sortedManifests[currentVersionIndex - 1]) === null || _a === void 0 ? void 0 : _a.id;
                     return [4 /*yield*/, Promise.all([
-                            getTablesForVersion(previousVersion),
-                            getTablesForVersion(currentVersion),
+                            getTablesForVersion(previousVersionId),
+                            getTablesForVersion(manifestId),
                         ])];
                 case 2:
                     _b = _c.sent(), _previousTables = _b[0], _currentTables = _b[1];
@@ -79,6 +76,15 @@ export default function diffManifestVersion(currentVersion) {
                                 switch (_d.label) {
                                     case 0:
                                         previousTable = previousTables[currentTable.name];
+                                        if (!previousTable) {
+                                            console.warn("Unable to find previous table for", currentTable.name);
+                                            return [2 /*return*/, {
+                                                    added: [],
+                                                    unclassified: [],
+                                                    removed: [],
+                                                    reclassified: [],
+                                                }];
+                                        }
                                         return [4 /*yield*/, Promise.all([
                                                 getFromS3(previousTable.s3Key),
                                                 getFromS3(currentTable.s3Key),
@@ -100,7 +106,7 @@ export default function diffManifestVersion(currentVersion) {
                         }); }))];
                 case 3:
                     data = _c.sent();
-                    return [4 /*yield*/, uploadToS3(makeDiffKey(currentVersion), JSON.stringify(data), "application/json", "public-read")];
+                    return [4 /*yield*/, uploadToS3(makeDiffKey(manifestId), JSON.stringify(data), "application/json", "public-read")];
                 case 4:
                     _c.sent();
                     return [2 /*return*/, data];

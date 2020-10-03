@@ -3,28 +3,24 @@ import sortBy from "lodash/sortBy";
 import keyBy from "lodash/keyBy";
 
 import {
-  getAllManifests,
-  Manifest,
+  Version,
   getTablesForVersion,
   DefinitionTable,
+  getAllVerisons,
 } from "./db";
 
 import uploadToS3, { getFromS3, makeDiffKey } from "./s3";
-import { AllDestinyManifestComponents } from "bungie-api-ts/destiny2";
+import {
+  AllDestinyManifestComponents,
+  DestinyManifest,
+} from "bungie-api-ts/destiny2";
+import { getManifestId } from "./utils";
 
 const TABLE_CONCURRENCY = 1;
 
-function validateVersionOrder(allManifests: Manifest[]): Manifest[] {
-  const byVersion = sortBy(allManifests, (v) => v.version);
-  const byCreatedAt = sortBy(allManifests, (v) => v.createdAt);
-
-  for (const index in byVersion) {
-    if (byVersion[index] !== byCreatedAt[index]) {
-      throw new Error("Version and createdAt sort order is inconsistent");
-    }
-  }
-
-  return byVersion;
+function sortVersions(allManifests: Version[]): Version[] {
+  // TODO: do we need to validate the order or something here?
+  return sortBy(allManifests, (v) => v.createdAt);
 }
 
 type AnyDefinitionTable = AllDestinyManifestComponents[keyof AllDestinyManifestComponents];
@@ -42,22 +38,26 @@ export type AllTableDiff = {
   [tableName: string]: TableDiff;
 };
 
-export default async function diffManifestVersion(currentVersion: string) {
-  const allManifests = await getAllManifests();
+export default async function diffManifestVersion(manifest: DestinyManifest) {
+  const manifestId = getManifestId(manifest);
+  const allManifests = await getAllVerisons();
 
-  const sortedManifests = validateVersionOrder(allManifests);
+  const sortedManifests = sortVersions(allManifests);
   const currentVersionIndex = sortedManifests.findIndex(
-    (v) => v.version == currentVersion
+    (v) => v.id == manifestId
   );
 
-  const previousVersion = sortedManifests[currentVersionIndex - 1]?.version;
+  const previousVersionId = sortedManifests[currentVersionIndex - 1]?.id;
 
   const [_previousTables, _currentTables] = await Promise.all([
-    getTablesForVersion(previousVersion),
-    getTablesForVersion(currentVersion),
+    getTablesForVersion(previousVersionId),
+    getTablesForVersion(manifestId),
   ]);
 
-  const previousTables = keyBy(_previousTables, (v) => v.name);
+  const previousTables: Record<string, DefinitionTable | undefined> = keyBy(
+    _previousTables,
+    (v) => v.name
+  );
   const currentTables = keyBy(_currentTables, (v) => v.name);
 
   delete previousTables.DestinyInventoryItemLiteDefinition;
@@ -68,6 +68,16 @@ export default async function diffManifestVersion(currentVersion: string) {
     TABLE_CONCURRENCY,
     asyncLib.asyncify(async (currentTable: DefinitionTable) => {
       const previousTable = previousTables[currentTable.name];
+
+      if (!previousTable) {
+        console.warn("Unable to find previous table for", currentTable.name);
+        return {
+          added: [],
+          unclassified: [],
+          removed: [],
+          reclassified: [],
+        };
+      }
 
       const [previousDefinitions, currentDefinitions] = await Promise.all([
         getFromS3<AnyDefinitionTable>(previousTable.s3Key),
@@ -97,7 +107,7 @@ export default async function diffManifestVersion(currentVersion: string) {
   );
 
   await uploadToS3(
-    makeDiffKey(currentVersion),
+    makeDiffKey(manifestId),
     JSON.stringify(data),
     "application/json",
     "public-read"

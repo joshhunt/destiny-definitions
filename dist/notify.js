@@ -37,6 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 import dotenv from "dotenv";
 import axios from "axios";
 import discordWebhook from "discord-webhook-node";
+import { getManifestId } from "./utils";
 var Webhook = discordWebhook.Webhook, MessageBuilder = discordWebhook.MessageBuilder;
 dotenv.config();
 if (!process.env.DISCORD_WEBHOOK) {
@@ -96,17 +97,19 @@ function notifyNetlify(version) {
         });
     });
 }
-export default function notify(version, diffData) {
+export default function notify(manifest, diffData) {
     return __awaiter(this, void 0, void 0, function () {
+        var manifestId;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    manifestId = getManifestId(manifest);
                     console.log("Sending Discord notification");
-                    return [4 /*yield*/, notifyDiscord(version, diffData)];
+                    return [4 /*yield*/, notifyDiscord(manifestId, diffData)];
                 case 1:
                     _a.sent();
                     console.log("Triggering Netlify build");
-                    return [4 /*yield*/, notifyNetlify(version)];
+                    return [4 /*yield*/, notifyNetlify(manifestId)];
                 case 2:
                     _a.sent();
                     return [2 /*return*/];

@@ -2,11 +2,13 @@ import dotenv from "dotenv";
 import fs from "fs-extra";
 
 import { getManifest } from "./bungie";
-import { getManifest as getDbManifest } from "./db";
+import { getVersion as getDbVersion } from "./db";
 import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
 import notify from "./notify";
+import { getManifestId } from "./utils";
+import { readLastVersionFile } from "./lastVersion";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET;
@@ -25,48 +27,36 @@ async function main() {
   console.log("Loading manifest");
   const [manifestResp, latestUploaded] = await Promise.all([
     getManifest(),
-    (await fs.readJSON("./latestVersion.json")) as Promise<{ version: string }>,
+    readLastVersionFile(),
   ]);
 
-  const manifestData = manifestResp.data.Response;
+  const currentManifest = manifestResp.data.Response;
 
-  console.log(`latestVersion.json version: ${latestUploaded.version}`);
-  console.log(`Current API manifest version: ${manifestData.version}`);
+  const currentManifestId = getManifestId(currentManifest);
+  const lastManifestId = latestUploaded.id;
 
-  if (!force && manifestData.version === latestUploaded.version) {
-    console.log("Manifest already exists in latestVersion.json");
-    return;
-  }
+  console.log(`Current API manifest version: ${currentManifestId}`);
+  console.log(`lastVersion.json ID: ${lastManifestId}`);
 
-  const prevManifest = await getDbManifest(manifestData.version);
-
-  if (!force && prevManifest) {
-    const l = { ...prevManifest } as any;
-    delete l.data;
-    console.log("Manifest already exists in database");
-    console.log(l);
-
-    await fs.writeJSON("./latestVersion.json", {
-      version: manifestData.version,
-    });
-
+  if (!force && currentManifestId === lastManifestId) {
+    console.log("Manifest already exists in lastVersion.json");
     return;
   }
 
   console.log("Processing manifest");
-  await processManifest(manifestData);
+  await processManifest(currentManifest);
 
   console.log("Creating diff");
-  const diffResults = await diffManifestVersion(manifestData.version);
+  const diffResults = await diffManifestVersion(currentManifest);
 
   console.log("Creating index");
   await createIndex();
 
   console.log("Finishing up");
-  await finish(manifestData.version);
+  await finish(currentManifest);
 
   console.log("Sending notifications");
-  await notify(manifestData.version, diffResults);
+  await notify(currentManifest, diffResults);
 
   console.log("All done");
 }

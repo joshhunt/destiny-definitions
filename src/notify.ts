@@ -3,6 +3,8 @@ import axios from "axios";
 import discordWebhook from "discord-webhook-node";
 import { AllTableDiff } from "./diff";
 import Axios from "axios";
+import { DestinyManifest } from "bungie-api-ts/destiny2";
+import { getManifestId } from "./utils";
 
 const { Webhook, MessageBuilder } = discordWebhook;
 
@@ -47,10 +49,15 @@ async function notifyNetlify(version: string) {
   );
 }
 
-export default async function notify(version: string, diffData: AllTableDiff) {
+export default async function notify(
+  manifest: DestinyManifest,
+  diffData: AllTableDiff
+) {
+  const manifestId = getManifestId(manifest);
+
   console.log("Sending Discord notification");
-  await notifyDiscord(version, diffData);
+  await notifyDiscord(manifestId, diffData);
 
   console.log("Triggering Netlify build");
-  await notifyNetlify(version);
+  await notifyNetlify(manifestId);
 }

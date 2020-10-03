@@ -7,20 +7,22 @@ export interface Version {
   id: string;
   version: string;
   s3Key: string;
-  data: DestinyManifest;
+  manifest: DestinyManifest;
+  data?: DestinyManifest;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type VersionRecord = DatabaseRecord<Version>;
 
-export const schemaSql = `
+export const schemaSQL = `
   CREATE TABLE IF NOT EXISTS Version (
-    version TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY,
+    version TEXT NOT NULL,
     s3Key TEXT NOT NULL,
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
-    data TEXT NOT NULL
+    manifest TEXT NOT NULL
   );
 `;
 
@@ -29,7 +31,7 @@ function deserialiseVersionRecord(obj: VersionRecord): Version {
     id: obj.id,
     version: obj.version,
     s3Key: obj.s3Key,
-    data: JSON.parse(obj.data) as DestinyManifest,
+    manifest: JSON.parse(obj.manifest) as DestinyManifest,
     createdAt: new Date(obj.createdAt),
     updatedAt: new Date(obj.updatedAt),
   };
@@ -58,24 +60,30 @@ export async function getVersion(id: string): Promise<Version | null> {
 }
 
 export async function saveVersionRow(
-  version: Omit<Version, "createdAt" | "updatedAt">
+  version: Omit<Version, "createdAt" | "updatedAt"> & { createdAt?: Date }
 ) {
   const { run } = await getDb();
+
+  if (version.createdAt) {
+    console.warn(
+      "WARNING: version.createdAt was specified when saving version row"
+    );
+  }
 
   const payload: Version = {
     ...version,
     updatedAt: new Date(),
-    createdAt: new Date(),
+    createdAt: version.createdAt || new Date(),
   };
 
   const sql = `
-      INSERT INTO Version( id, version,   s3Key,  data,  createdAt,  updatedAt)
-                   VALUES($id, $version, $s3Key, $data, $createdAt, $updatedAt)
+      INSERT INTO Version( id, version,   s3Key,  manifest,  createdAt,  updatedAt)
+                   VALUES($id, $version, $s3Key, $manifest, $createdAt, $updatedAt)
 
         ON CONFLICT(id) DO UPDATE SET
           version=excluded.version,
           s3Key=excluded.s3Key,
-          data=excluded.data,
+          manifest=excluded.manifest,
           updatedAt=excluded.updatedAt
       ;
     `;
@@ -84,7 +92,7 @@ export async function saveVersionRow(
     $id: payload.id,
     $version: payload.version,
     $s3Key: payload.s3Key,
-    $data: JSON.stringify(payload.data),
+    $manifest: JSON.stringify(payload.manifest),
     $createdAt: payload.createdAt.toISOString(),
     $updatedAt: payload.updatedAt.toISOString(),
   };

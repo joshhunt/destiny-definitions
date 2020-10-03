@@ -1,3 +1,4 @@
+import getDb from "./setup";
 import { DatabaseRecord } from "./types";
 
 export interface DefinitionTable {
@@ -11,6 +12,20 @@ export interface DefinitionTable {
 
 type DefinitionTableRecord = DatabaseRecord<DefinitionTable>;
 
+export const schemaSQL = `
+CREATE TABLE IF NOT EXISTS DefinitionTable (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  versionId TEXT NOT NULL,
+  bungiePath TEXT NOT NULL,
+  s3Key TEXT NOT NULL,
+  createdAt TEXT NOT NULL,
+  updatedAt TEXT NOT NULL,
+  FOREIGN KEY(versionId) REFERENCES Version(id),
+  UNIQUE(name, versionId)
+);
+`;
+
 export async function saveDefinitionTableRow(
   defTable: Omit<DefinitionTable, "createdAt" | "updatedAt">
 ) {
@@ -23,9 +38,9 @@ export async function saveDefinitionTableRow(
   };
 
   const sql = `
-    INSERT INTO DefinitionTable(name, bungiePath, s3Key, manifestVersion, createdAt, updatedAt)
-      VALUES($name, $bungiePath, $s3Key, $manifestVersion, $createdAt, $updatedAt)
-      ON CONFLICT(name, manifestVersion) DO UPDATE SET
+    INSERT INTO DefinitionTable( name,  bungiePath,  s3Key,  versionId,  createdAt,  updatedAt)
+                         VALUES($name, $bungiePath, $s3Key, $versionId, $createdAt, $updatedAt)
+      ON CONFLICT(name, versionId) DO UPDATE SET
         bungiePath=excluded.bungiePath,
         s3Key=excluded.s3Key,
         updatedAt=excluded.updatedAt
@@ -36,7 +51,7 @@ export async function saveDefinitionTableRow(
     $name: payload.name,
     $bungiePath: payload.bungiePath,
     $s3Key: payload.s3Key,
-    $manifestVersion: payload.manifestVersion,
+    $versionId: payload.versionId,
     $createdAt: payload.createdAt.toISOString(),
     $updatedAt: payload.updatedAt.toISOString(),
   };
@@ -44,12 +59,14 @@ export async function saveDefinitionTableRow(
   return run(sql, params);
 }
 
-function deserialiseDefinitionTable(obj: DbRecord): DefinitionTable {
+function deserialiseDefinitionTable(
+  obj: DefinitionTableRecord
+): DefinitionTable {
   return {
     name: obj.name,
     bungiePath: obj.bungiePath,
     s3Key: obj.s3Key,
-    manifestVersion: obj.manifestVersion,
+    versionId: obj.versionId,
     createdAt: new Date(obj.createdAt),
     updatedAt: new Date(obj.updatedAt),
   };
@@ -60,8 +77,8 @@ export async function getTablesForVersion(
 ): Promise<DefinitionTable[]> {
   const { all } = await getDb();
 
-  const rows = await all<DbRecord>(
-    `SELECT * from DefinitionTable WHERE manifestVersion = "${version}";`
+  const rows = await all<DefinitionTableRecord>(
+    `SELECT * from DefinitionTable WHERE versionId = "${version}";`
   );
 
   return rows.map(deserialiseDefinitionTable);

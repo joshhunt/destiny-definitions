@@ -109,19 +109,14 @@ export default function uploadToS3(key, body, contentType, acl) {
 }
 export var makeIndexKey = function () { return "index.json"; };
 export var makeDatabaseKey = function () { return "database.sqlite"; };
-export var makeVersionedDatabaseKey = function (version) {
-    return "versions/" + version + "/database.sqlite";
+export var makeVersionedDatabaseKey = function (id) {
+    return "versions/" + id + "/database.sqlite";
 };
-export var makeManifestKey = function (version) {
-    return "versions/" + version + "/manifest.json";
+export var makeManifestKey = function (id) { return "versions/" + id + "/manifest.json"; };
+export var makeMobileWorldContentKey = function (id, fileName) {
+    return "versions/" + id + "/" + fileName;
 };
-export var makeMobileWorldContentKey = function (version, fileName) {
-    return "versions/" + version + "/" + fileName;
+export var makeDefinitionTableKey = function (id, table) {
+    return "versions/" + id + "/tables/" + table + ".json";
 };
-export var makeDefinitionTableKey = function (version, table) {
-    return "versions/" + version + "/tables/" + table + ".json";
-};
-export var makeDiffKey = function (version) { return "versions/" + version + "/diff.json"; };
-export var makeTableDiffHtmlKey = function (version, table) {
-    return "versions/" + version + "/diff/" + table + ".html";
-};
+export var makeDiffKey = function (id) { return "versions/" + id + "/diff.json"; };

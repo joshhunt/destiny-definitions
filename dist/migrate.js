@@ -34,32 +34,86 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import { getAllManifests } from "./db";
-import getDb from "./db/setup";
-import { getGuidFromManifest } from "./utils";
-function main() {
+import fs from "fs-extra";
+import path from "path";
+import diffManifestVersion from "./diff";
+import { createIndex, finish } from "./extraTasks";
+import processManifest from "./manifest";
+import { getManifestId } from "./utils";
+function processVersion(version) {
     return __awaiter(this, void 0, void 0, function () {
-        var manifests;
+        var manifest, createdAt, diffResults;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    console.log("hello");
-                    return [4 /*yield*/, getDb(true)];
+                    manifest = version.data;
+                    createdAt = version.createdAt;
+                    if (!manifest) {
+                        throw new Error("missing manifest");
+                    }
+                    console.log("Processing manifest");
+                    return [4 /*yield*/, processManifest(manifest, new Date(createdAt))];
                 case 1:
                     _a.sent();
-                    return [4 /*yield*/, getAllManifests()];
+                    console.log("Creating diff");
+                    return [4 /*yield*/, diffManifestVersion(manifest)];
                 case 2:
-                    manifests = _a.sent();
-                    console.log("\nManifest versions:");
-                    manifests.forEach(function (manifest) {
-                        var guid = getGuidFromManifest(manifest.data);
-                        console.log("  version:", manifest.version);
-                        console.log("  created at:", manifest.createdAt);
-                        console.log("  json path:", manifest.data.jsonWorldContentPaths.en);
-                        console.log("  guid:", guid);
-                        console.log("");
-                    });
+                    diffResults = _a.sent();
+                    console.log("Creating index");
+                    return [4 /*yield*/, createIndex()];
+                case 3:
+                    _a.sent();
+                    console.log("Finishing up");
+                    return [4 /*yield*/, finish(manifest)];
+                case 4:
+                    _a.sent();
                     return [2 /*return*/];
+            }
+        });
+    });
+}
+function main() {
+    return __awaiter(this, void 0, void 0, function () {
+        var dataExport, versions, _i, versions_1, version;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, fs.readJSON("./export.json")];
+                case 1:
+                    dataExport = _a.sent();
+                    console.log("Loaded", dataExport.length, "versions from export.json");
+                    versions = dataExport.map(function (data) {
+                        if (!data.version.data) {
+                            throw new Error("missing data.version.data");
+                        }
+                        data.version.data.mobileWorldContentPaths["en"] = "https://destiny-definitions-new-source.s3-eu-west-1.amazonaws.com/versions/" + data.version.version + "/" + path.basename(data.version.data.mobileWorldContentPaths["en"]);
+                        Object.keys(data.version.data.jsonWorldComponentContentPaths["en"]).forEach(function (tableName) {
+                            var table = data.tables.find(function (v) { return v.name === tableName; });
+                            if (!data.version.data || !table) {
+                                throw new Error("missing table");
+                            }
+                            data.version.data.jsonWorldComponentContentPaths["en"][tableName] = "https://destiny-definitions-new-source.s3-eu-west-1.amazonaws.com/" + table.s3Key;
+                        });
+                        return data.version;
+                    });
+                    return [4 /*yield*/, fs.writeJSON("./exportNew.json", versions, {
+                            spaces: 2,
+                        })];
+                case 2:
+                    _a.sent();
+                    _i = 0, versions_1 = versions;
+                    _a.label = 3;
+                case 3:
+                    if (!(_i < versions_1.length)) return [3 /*break*/, 6];
+                    version = versions_1[_i];
+                    console.log("\n\nPropcessing verson", (version.data || version.manifest).version, "->", getManifestId(version.data || version.manifest), "created at", new Date(version.createdAt));
+                    return [4 /*yield*/, processVersion(version)];
+                case 4:
+                    _a.sent();
+                    _a.label = 5;
+                case 5:
+                    _i++;
+                    return [3 /*break*/, 3];
+                case 6: return [2 /*return*/];
             }
         });
     });

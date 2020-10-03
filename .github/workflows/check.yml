@@ -47,7 +47,7 @@ jobs:
         id: version
         uses: notiz-dev/github-action-json-property@release
         with:
-          path: "latestVersion.json"
+          path: "lastVersion.json"
           prop_path: "version"
 
       - name: Commit everything

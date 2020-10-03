@@ -56,7 +56,7 @@ export default function getDb(forceLatest: boolean = false) {
   }
 
   initDbPromise = new Promise(async (resolve, reject) => {
-    // await downloadDatabase(forceLatest);
+    await downloadDatabase(forceLatest);
 
     const db = new sqlite.Database(dbFilePath);
     const all: Db["all"] = util.promisify(db.all.bind(db));

@@ -48,7 +48,7 @@ jobs:
         uses: notiz-dev/github-action-json-property@release
         with:
           path: "lastVersion.json"
-          prop_path: "version"
+          prop_path: "id"
 
       - name: Commit everything
         if: steps.code-changed.outputs.dirty

@@ -86,31 +86,36 @@ export default function getDb(forceLatest) {
     initDbPromise = new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
         var db, all, get, run, dbPayload, dbCb;
         return __generator(this, function (_a) {
-            db = new sqlite.Database(dbFilePath);
-            all = util.promisify(db.all.bind(db));
-            get = util.promisify(db.get.bind(db));
-            run = util.promisify(db.run.bind(db));
-            dbPayload = {
-                db: db,
-                all: all,
-                get: get,
-                run: run,
-            };
-            dbCb = function (result, error) {
-                console.log("Database init:", result);
-                if (error) {
-                    console.error("Database init error:", error);
-                    reject(error);
-                }
-                else {
-                    resolve(dbPayload);
-                }
-            };
-            db.serialize(function () {
-                db.run("PRAGMA foreign_keys = ON").run(versionSchemaSQL);
-                db.run("PRAGMA foreign_keys = ON").run(definitionTableSchemaSQL, dbCb);
-            });
-            return [2 /*return*/];
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, downloadDatabase(forceLatest)];
+                case 1:
+                    _a.sent();
+                    db = new sqlite.Database(dbFilePath);
+                    all = util.promisify(db.all.bind(db));
+                    get = util.promisify(db.get.bind(db));
+                    run = util.promisify(db.run.bind(db));
+                    dbPayload = {
+                        db: db,
+                        all: all,
+                        get: get,
+                        run: run,
+                    };
+                    dbCb = function (result, error) {
+                        console.log("Database init:", result);
+                        if (error) {
+                            console.error("Database init error:", error);
+                            reject(error);
+                        }
+                        else {
+                            resolve(dbPayload);
+                        }
+                    };
+                    db.serialize(function () {
+                        db.run("PRAGMA foreign_keys = ON").run(versionSchemaSQL);
+                        db.run("PRAGMA foreign_keys = ON").run(definitionTableSchemaSQL, dbCb);
+                    });
+                    return [2 /*return*/];
+            }
         });
     }); });
     return initDbPromise;

@@ -11,6 +11,7 @@ import { getManifestId } from "./utils";
 interface ExportEntry {
   version: Omit<Version, "createdAt"> & {
     createdAt: string;
+    data: DestinyManifest;
   };
   tables: DefinitionTable[];
 }

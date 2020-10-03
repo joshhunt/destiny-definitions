@@ -8,7 +8,6 @@ export interface Version {
   version: string;
   s3Key: string;
   manifest: DestinyManifest;
-  data?: DestinyManifest;
   createdAt: Date;
   updatedAt: Date;
 }

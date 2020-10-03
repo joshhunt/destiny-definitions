@@ -75,19 +75,15 @@ export default async function uploadToS3(
 export const makeIndexKey = () => `index.json`;
 export const makeDatabaseKey = () => `database.sqlite`;
 
-export const makeVersionedDatabaseKey = (version: string) =>
-  `versions/${version}/database.sqlite`;
+export const makeVersionedDatabaseKey = (id: string) =>
+  `versions/${id}/database.sqlite`;
 
-export const makeManifestKey = (version: string) =>
-  `versions/${version}/manifest.json`;
+export const makeManifestKey = (id: string) => `versions/${id}/manifest.json`;
 
-export const makeMobileWorldContentKey = (version: string, fileName: string) =>
-  `versions/${version}/${fileName}`;
+export const makeMobileWorldContentKey = (id: string, fileName: string) =>
+  `versions/${id}/${fileName}`;
 
-export const makeDefinitionTableKey = (version: string, table: string) =>
-  `versions/${version}/tables/${table}.json`;
+export const makeDefinitionTableKey = (id: string, table: string) =>
+  `versions/${id}/tables/${table}.json`;
 
-export const makeDiffKey = (version: string) => `versions/${version}/diff.json`;
-
-export const makeTableDiffHtmlKey = (version: string, table: string) =>
-  `versions/${version}/diff/${table}.html`;
+export const makeDiffKey = (id: string) => `versions/${id}/diff.json`;

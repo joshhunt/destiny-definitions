@@ -1,7 +1,12 @@
 import util from "util";
 import fs from "fs-extra";
 import sqlite, { RunResult, Database } from "sqlite3";
+
 import { makeDatabaseKey, downloadFromS3 } from "../s3";
+
+import { schemaSQL as versionSchemaSQL } from "./version";
+import { schemaSQL as definitionTableSchemaSQL } from "./definitionTable";
+
 sqlite.verbose();
 
 export const dbFilePath = "./database.sqlite";
@@ -16,12 +21,12 @@ interface Db {
   get<T = unknown>(sql: string, params: any): Promise<T>;
 }
 
-let initDbPromise: Promise<Db>;
+let initDbPromise: Promise<Db> | undefined;
 
-async function downloadDatabase() {
+async function downloadDatabase(forceLatest: boolean = false) {
   const dbExists = await fs.pathExists(dbFilePath);
 
-  if (dbExists) {
+  if (!forceLatest && dbExists) {
     console.log("Database already exists.");
     return;
   }
@@ -31,13 +36,27 @@ async function downloadDatabase() {
   await downloadFromS3(makeDatabaseKey(), dbFilePath);
 }
 
-export default function getDb() {
+export function closeDb(db: Database) {
+  return new Promise((resolve, reject) => {
+    db.close((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      initDbPromise = undefined;
+      resolve();
+    });
+  });
+}
+
+export default function getDb(forceLatest: boolean = false) {
   if (initDbPromise) {
     return initDbPromise;
   }
 
   initDbPromise = new Promise(async (resolve, reject) => {
-    await downloadDatabase();
+    // await downloadDatabase(forceLatest);
 
     const db = new sqlite.Database(dbFilePath);
     const all: Db["all"] = util.promisify(db.all.bind(db));
@@ -63,34 +82,9 @@ export default function getDb() {
     };
 
     db.serialize(() => {
-      db.get("PRAGMA foreign_keys = ON")
-        .get(
-          `
-          CREATE TABLE IF NOT EXISTS Manifest (
-            version TEXT PRIMARY KEY,
-            s3Key TEXT NOT NULL,
-            createdAt TEXT NOT NULL,
-            updatedAt TEXT NOT NULL,
-            data TEXT NOT NULL
-          );
-        `
-        )
-        .get(
-          `
-          CREATE TABLE IF NOT EXISTS DefinitionTable (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            manifestVersion TEXT NOT NULL,
-            bungiePath TEXT NOT NULL,
-            s3Key TEXT NOT NULL,
-            createdAt TEXT NOT NULL,
-            updatedAt TEXT NOT NULL,
-            FOREIGN KEY(manifestVersion) REFERENCES Manifest(version),
-            UNIQUE(name, manifestVersion)
-          );
-        `,
-          dbCb
-        );
+      db.run("PRAGMA foreign_keys = ON").run(versionSchemaSQL);
+
+      db.run("PRAGMA foreign_keys = ON").run(definitionTableSchemaSQL, dbCb);
     });
   });
 

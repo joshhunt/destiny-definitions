@@ -12,3 +12,9 @@ export function getManifest() {
         },
     });
 }
+export function bungieUrl(urlBase) {
+    if (urlBase.includes("https://") || urlBase.includes("http://")) {
+        return urlBase;
+    }
+    return "https://www.bungie.net" + urlBase;
+}

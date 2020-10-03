@@ -36,28 +36,32 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 import path from "path";
 import axios from "axios";
-import { saveManifestRow, saveDefinitionTableRow } from "./db";
+import { saveVersionRow, saveDefinitionTableRow } from "./db";
 import uploadToS3, { makeManifestKey, makeDefinitionTableKey, makeMobileWorldContentKey, } from "./s3";
+import { getManifestId } from "./utils";
+import { bungieUrl } from "./bungie";
 var LANGUAGE = "en";
-export default function processManifest(manifest) {
+export default function processManifest(manifest, createdAt) {
     return __awaiter(this, void 0, void 0, function () {
-        var version, manifestS3Key, tables, entries, _i, entries_1, _a, tableName, bungiePath;
+        var manifestId, manifestS3Key, tables, entries, _i, entries_1, _a, tableName, bungiePath;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    version = manifest.version;
-                    manifestS3Key = makeManifestKey(version);
+                    manifestId = getManifestId(manifest);
+                    manifestS3Key = makeManifestKey(manifestId);
                     return [4 /*yield*/, uploadToS3(manifestS3Key, JSON.stringify(manifest))];
                 case 1:
                     _b.sent();
-                    return [4 /*yield*/, uploadMobileWorldContent(manifest)];
+                    return [4 /*yield*/, uploadMobileWorldContent(manifestId, manifest)];
                 case 2:
                     _b.sent();
                     console.log("Saving manifest to DB");
-                    return [4 /*yield*/, saveManifestRow({
-                            version: version,
-                            data: manifest,
+                    return [4 /*yield*/, saveVersionRow({
+                            id: manifestId,
+                            version: manifest.version,
+                            manifest: manifest,
                             s3Key: manifestS3Key,
+                            createdAt: createdAt,
                         })];
                 case 3:
                     _b.sent();
@@ -68,7 +72,7 @@ export default function processManifest(manifest) {
                 case 4:
                     if (!(_i < entries_1.length)) return [3 /*break*/, 7];
                     _a = entries_1[_i], tableName = _a[0], bungiePath = _a[1];
-                    return [4 /*yield*/, processDefinitionTable(tableName, bungiePath, version)];
+                    return [4 /*yield*/, processDefinitionTable(manifestId, tableName, bungiePath)];
                 case 5:
                     _b.sent();
                     _b.label = 6;
@@ -80,18 +84,20 @@ export default function processManifest(manifest) {
         });
     });
 }
-function uploadMobileWorldContent(manifest) {
+function uploadMobileWorldContent(manifestId, manifest) {
     return __awaiter(this, void 0, void 0, function () {
         var mobileWorldContentPath, resp, fileName, s3Key;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     mobileWorldContentPath = manifest.mobileWorldContentPaths[LANGUAGE];
-                    return [4 /*yield*/, axios.get("https://www.bungie.net" + mobileWorldContentPath, { responseType: "arraybuffer" })];
+                    return [4 /*yield*/, axios.get(bungieUrl(mobileWorldContentPath), {
+                            responseType: "arraybuffer",
+                        })];
                 case 1:
                     resp = _a.sent();
                     fileName = path.basename(mobileWorldContentPath);
-                    s3Key = makeMobileWorldContentKey(manifest.version, fileName);
+                    s3Key = makeMobileWorldContentKey(manifestId, fileName);
                     return [4 /*yield*/, uploadToS3(s3Key, resp.data)];
                 case 2:
                     _a.sent();
@@ -100,26 +106,26 @@ function uploadMobileWorldContent(manifest) {
         });
     });
 }
-function processDefinitionTable(tableName, bungiePath, version) {
+function processDefinitionTable(manifestId, tableName, bungiePath) {
     return __awaiter(this, void 0, void 0, function () {
         var resp, s3Key;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     console.log("Processing table " + tableName);
-                    return [4 /*yield*/, axios.get("https://www.bungie.net" + bungiePath, {
+                    return [4 /*yield*/, axios.get(bungieUrl(bungiePath), {
                             transformResponse: function (res) { return res; },
                             responseType: "json",
                         })];
                 case 1:
                     resp = _a.sent();
-                    s3Key = makeDefinitionTableKey(version, tableName);
+                    s3Key = makeDefinitionTableKey(manifestId, tableName);
                     return [4 /*yield*/, uploadToS3(s3Key, resp.data, "application/json", "public-read")];
                 case 2:
                     _a.sent();
                     return [4 /*yield*/, saveDefinitionTableRow({
                             name: tableName,
-                            manifestVersion: version,
+                            versionId: manifestId,
                             bungiePath: bungiePath,
                             s3Key: s3Key,
                         })];

@@ -38,10 +38,13 @@ import util from "util";
 import fs from "fs-extra";
 import sqlite from "sqlite3";
 import { makeDatabaseKey, downloadFromS3 } from "../s3";
+import { schemaSQL as versionSchemaSQL } from "./version";
+import { schemaSQL as definitionTableSchemaSQL } from "./definitionTable";
 sqlite.verbose();
 export var dbFilePath = "./database.sqlite";
 var initDbPromise;
-function downloadDatabase() {
+function downloadDatabase(forceLatest) {
+    if (forceLatest === void 0) { forceLatest = false; }
     return __awaiter(this, void 0, void 0, function () {
         var dbExists;
         return __generator(this, function (_a) {
@@ -49,7 +52,7 @@ function downloadDatabase() {
                 case 0: return [4 /*yield*/, fs.pathExists(dbFilePath)];
                 case 1:
                     dbExists = _a.sent();
-                    if (dbExists) {
+                    if (!forceLatest && dbExists) {
                         console.log("Database already exists.");
                         return [2 /*return*/];
                     }
@@ -62,45 +65,52 @@ function downloadDatabase() {
         });
     });
 }
-export default function getDb() {
+export function closeDb(db) {
+    return new Promise(function (resolve, reject) {
+        db.close(function (err) {
+            if (err) {
+                reject(err);
+                return;
+            }
+            initDbPromise = undefined;
+            resolve();
+        });
+    });
+}
+export default function getDb(forceLatest) {
     var _this = this;
+    if (forceLatest === void 0) { forceLatest = false; }
     if (initDbPromise) {
         return initDbPromise;
     }
     initDbPromise = new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
         var db, all, get, run, dbPayload, dbCb;
         return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, downloadDatabase()];
-                case 1:
-                    _a.sent();
-                    db = new sqlite.Database(dbFilePath);
-                    all = util.promisify(db.all.bind(db));
-                    get = util.promisify(db.get.bind(db));
-                    run = util.promisify(db.run.bind(db));
-                    dbPayload = {
-                        db: db,
-                        all: all,
-                        get: get,
-                        run: run,
-                    };
-                    dbCb = function (result, error) {
-                        console.log("Database init:", result);
-                        if (error) {
-                            console.error("Database init error:", error);
-                            reject(error);
-                        }
-                        else {
-                            resolve(dbPayload);
-                        }
-                    };
-                    db.serialize(function () {
-                        db.get("PRAGMA foreign_keys = ON")
-                            .get("\n          CREATE TABLE IF NOT EXISTS Manifest (\n            version TEXT PRIMARY KEY,\n            s3Key TEXT NOT NULL,\n            createdAt TEXT NOT NULL,\n            updatedAt TEXT NOT NULL,\n            data TEXT NOT NULL\n          );\n        ")
-                            .get("\n          CREATE TABLE IF NOT EXISTS DefinitionTable (\n            id INTEGER PRIMARY KEY,\n            name TEXT NOT NULL,\n            manifestVersion TEXT NOT NULL,\n            bungiePath TEXT NOT NULL,\n            s3Key TEXT NOT NULL,\n            createdAt TEXT NOT NULL,\n            updatedAt TEXT NOT NULL,\n            FOREIGN KEY(manifestVersion) REFERENCES Manifest(version),\n            UNIQUE(name, manifestVersion)\n          );\n        ", dbCb);
-                    });
-                    return [2 /*return*/];
-            }
+            db = new sqlite.Database(dbFilePath);
+            all = util.promisify(db.all.bind(db));
+            get = util.promisify(db.get.bind(db));
+            run = util.promisify(db.run.bind(db));
+            dbPayload = {
+                db: db,
+                all: all,
+                get: get,
+                run: run,
+            };
+            dbCb = function (result, error) {
+                console.log("Database init:", result);
+                if (error) {
+                    console.error("Database init error:", error);
+                    reject(error);
+                }
+                else {
+                    resolve(dbPayload);
+                }
+            };
+            db.serialize(function () {
+                db.run("PRAGMA foreign_keys = ON").run(versionSchemaSQL);
+                db.run("PRAGMA foreign_keys = ON").run(definitionTableSchemaSQL, dbCb);
+            });
+            return [2 /*return*/];
         });
     }); });
     return initDbPromise;

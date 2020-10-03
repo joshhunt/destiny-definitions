@@ -45,53 +45,76 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import fs from "fs-extra";
-import { dbFilePath, getAllVerisons } from "./db";
-import uploadToS3, { makeDatabaseKey, makeVersionedDatabaseKey, makeIndexKey, } from "./s3";
-import getDb, { closeDb } from "./db/setup";
-import { getManifestId } from "./utils";
-import { writeLastVersionFile } from "./lastVersion";
-export function createIndex() {
-    return __awaiter(this, void 0, void 0, function () {
-        var allManifests, index;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, getAllVerisons()];
-                case 1:
-                    allManifests = _a.sent();
-                    index = allManifests.map(function (manifest) {
-                        return __assign(__assign({}, manifest), { data: undefined, manifest: undefined });
-                    });
-                    return [2 /*return*/, uploadToS3(makeIndexKey(), JSON.stringify(index, null, 2), "application/json", "public-read")];
-            }
-        });
-    });
+import getDb from "./setup";
+export var schemaSQL = "\n  CREATE TABLE IF NOT EXISTS Version (\n    id TEXT PRIMARY KEY,\n    version TEXT NOT NULL,\n    s3Key TEXT NOT NULL,\n    createdAt TEXT NOT NULL,\n    updatedAt TEXT NOT NULL,\n    manifest TEXT NOT NULL\n  );\n";
+function deserialiseVersionRecord(obj) {
+    return {
+        id: obj.id,
+        version: obj.version,
+        s3Key: obj.s3Key,
+        manifest: JSON.parse(obj.manifest),
+        createdAt: new Date(obj.createdAt),
+        updatedAt: new Date(obj.updatedAt),
+    };
 }
-export function finish(manifest) {
+export function getAllVerisons() {
     return __awaiter(this, void 0, void 0, function () {
-        var db, manifestId, dbFile;
+        var all, rows;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, getDb()];
                 case 1:
-                    db = (_a.sent()).db;
-                    manifestId = getManifestId(manifest);
-                    return [4 /*yield*/, closeDb(db)];
+                    all = (_a.sent()).all;
+                    return [4 /*yield*/, all("SELECT * from Version;")];
                 case 2:
-                    _a.sent();
-                    return [4 /*yield*/, fs.readFile(dbFilePath)];
-                case 3:
-                    dbFile = _a.sent();
-                    return [4 /*yield*/, writeLastVersionFile({ id: manifestId })];
-                case 4:
-                    _a.sent();
-                    return [4 /*yield*/, uploadToS3(makeDatabaseKey(), dbFile, "application/vnd.sqlite3")];
-                case 5:
-                    _a.sent();
-                    return [4 /*yield*/, uploadToS3(makeVersionedDatabaseKey(manifestId), dbFile, "application/vnd.sqlite3")];
-                case 6:
-                    _a.sent();
-                    return [2 /*return*/];
+                    rows = _a.sent();
+                    return [2 /*return*/, rows.map(deserialiseVersionRecord)];
+            }
+        });
+    });
+}
+export function getVersion(id) {
+    return __awaiter(this, void 0, void 0, function () {
+        var get, result;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getDb()];
+                case 1:
+                    get = (_a.sent()).get;
+                    return [4 /*yield*/, get("SELECT * from Version WHERE id = $id;", { $id: id })];
+                case 2:
+                    result = _a.sent();
+                    if (!result) {
+                        return [2 /*return*/, null];
+                    }
+                    return [2 /*return*/, deserialiseVersionRecord(result)];
+            }
+        });
+    });
+}
+export function saveVersionRow(version) {
+    return __awaiter(this, void 0, void 0, function () {
+        var run, payload, sql, params, result;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getDb()];
+                case 1:
+                    run = (_a.sent()).run;
+                    if (version.createdAt) {
+                        console.warn("WARNING: version.createdAt was specified when saving version row");
+                    }
+                    payload = __assign(__assign({}, version), { updatedAt: new Date(), createdAt: version.createdAt || new Date() });
+                    sql = "\n      INSERT INTO Version( id, version,   s3Key,  manifest,  createdAt,  updatedAt)\n                   VALUES($id, $version, $s3Key, $manifest, $createdAt, $updatedAt)\n\n        ON CONFLICT(id) DO UPDATE SET\n          version=excluded.version,\n          s3Key=excluded.s3Key,\n          manifest=excluded.manifest,\n          updatedAt=excluded.updatedAt\n      ;\n    ";
+                    params = {
+                        $id: payload.id,
+                        $version: payload.version,
+                        $s3Key: payload.s3Key,
+                        $manifest: JSON.stringify(payload.manifest),
+                        $createdAt: payload.createdAt.toISOString(),
+                        $updatedAt: payload.updatedAt.toISOString(),
+                    };
+                    result = run(sql, params);
+                    return [2 /*return*/, result];
             }
         });
     });

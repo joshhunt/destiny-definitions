@@ -45,53 +45,53 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import fs from "fs-extra";
-import { dbFilePath, getAllVerisons } from "./db";
-import uploadToS3, { makeDatabaseKey, makeVersionedDatabaseKey, makeIndexKey, } from "./s3";
-import getDb, { closeDb } from "./db/setup";
-import { getManifestId } from "./utils";
-import { writeLastVersionFile } from "./lastVersion";
-export function createIndex() {
+import getDb from "./setup";
+export var schemaSQL = "\nCREATE TABLE IF NOT EXISTS DefinitionTable (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL,\n  versionId TEXT NOT NULL,\n  bungiePath TEXT NOT NULL,\n  s3Key TEXT NOT NULL,\n  createdAt TEXT NOT NULL,\n  updatedAt TEXT NOT NULL,\n  FOREIGN KEY(versionId) REFERENCES Version(id),\n  UNIQUE(name, versionId)\n);\n";
+export function saveDefinitionTableRow(defTable) {
     return __awaiter(this, void 0, void 0, function () {
-        var allManifests, index;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, getAllVerisons()];
-                case 1:
-                    allManifests = _a.sent();
-                    index = allManifests.map(function (manifest) {
-                        return __assign(__assign({}, manifest), { data: undefined, manifest: undefined });
-                    });
-                    return [2 /*return*/, uploadToS3(makeIndexKey(), JSON.stringify(index, null, 2), "application/json", "public-read")];
-            }
-        });
-    });
-}
-export function finish(manifest) {
-    return __awaiter(this, void 0, void 0, function () {
-        var db, manifestId, dbFile;
+        var run, payload, sql, params;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, getDb()];
                 case 1:
-                    db = (_a.sent()).db;
-                    manifestId = getManifestId(manifest);
-                    return [4 /*yield*/, closeDb(db)];
+                    run = (_a.sent()).run;
+                    payload = __assign(__assign({}, defTable), { updatedAt: new Date(), createdAt: new Date() });
+                    sql = "\n    INSERT INTO DefinitionTable( name,  bungiePath,  s3Key,  versionId,  createdAt,  updatedAt)\n                         VALUES($name, $bungiePath, $s3Key, $versionId, $createdAt, $updatedAt)\n      ON CONFLICT(name, versionId) DO UPDATE SET\n        bungiePath=excluded.bungiePath,\n        s3Key=excluded.s3Key,\n        updatedAt=excluded.updatedAt\n    ;\n  ";
+                    params = {
+                        $name: payload.name,
+                        $bungiePath: payload.bungiePath,
+                        $s3Key: payload.s3Key,
+                        $versionId: payload.versionId,
+                        $createdAt: payload.createdAt.toISOString(),
+                        $updatedAt: payload.updatedAt.toISOString(),
+                    };
+                    return [2 /*return*/, run(sql, params)];
+            }
+        });
+    });
+}
+function deserialiseDefinitionTable(obj) {
+    return {
+        name: obj.name,
+        bungiePath: obj.bungiePath,
+        s3Key: obj.s3Key,
+        versionId: obj.versionId,
+        createdAt: new Date(obj.createdAt),
+        updatedAt: new Date(obj.updatedAt),
+    };
+}
+export function getTablesForVersion(version) {
+    return __awaiter(this, void 0, void 0, function () {
+        var all, rows;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getDb()];
+                case 1:
+                    all = (_a.sent()).all;
+                    return [4 /*yield*/, all("SELECT * from DefinitionTable WHERE versionId = \"" + version + "\";")];
                 case 2:
-                    _a.sent();
-                    return [4 /*yield*/, fs.readFile(dbFilePath)];
-                case 3:
-                    dbFile = _a.sent();
-                    return [4 /*yield*/, writeLastVersionFile({ id: manifestId })];
-                case 4:
-                    _a.sent();
-                    return [4 /*yield*/, uploadToS3(makeDatabaseKey(), dbFile, "application/vnd.sqlite3")];
-                case 5:
-                    _a.sent();
-                    return [4 /*yield*/, uploadToS3(makeVersionedDatabaseKey(manifestId), dbFile, "application/vnd.sqlite3")];
-                case 6:
-                    _a.sent();
-                    return [2 /*return*/];
+                    rows = _a.sent();
+                    return [2 /*return*/, rows.map(deserialiseDefinitionTable)];
             }
         });
     });

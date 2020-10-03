@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import axios from "axios";
 import { DestinyManifest, ServerResponse } from "bungie-api-ts/destiny2";
+import { url } from "inspector";
 
 dotenv.config();
 const BUNGIE_API_KEY = process.env.BUNGIE_API_KEY || "";
@@ -18,4 +19,12 @@ export function getManifest() {
       },
     }
   );
+}
+
+export function bungieUrl(urlBase: string) {
+  if (urlBase.includes("https://") || urlBase.includes("http://")) {
+    return urlBase;
+  }
+
+  return `https://www.bungie.net${urlBase}`;
 }

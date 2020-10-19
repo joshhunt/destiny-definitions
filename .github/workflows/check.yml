@@ -37,6 +37,10 @@ jobs:
           BUNGIE_API_KEY: ${{ secrets.BUNGIE_API_KEY }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           NETLIFY_WEBOOK: ${{ secrets.NETLIFY_WEBOOK }}
+          TWITTER_CK: ${{ secrets.TWITTER_CK }}
+          TWITTER_CS: ${{ secrets.TWITTER_CS }}
+          TWITTER_TK: ${{ secrets.TWITTER_TK }}
+          TWITTER_TS: ${{ secrets.TWITTER_TS }}
 
       - name: Check if there were changes
         id: code-changed

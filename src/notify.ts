@@ -5,6 +5,7 @@ import { AllTableDiff } from "./diff";
 import Axios from "axios";
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import { getManifestId } from "./utils";
+import notifyTwitter from "./notify/twitter";
 
 const { Webhook, MessageBuilder } = discordWebhook;
 
@@ -39,14 +40,31 @@ async function notifyDiscord(version: string, diffData: AllTableDiff) {
 
   embed = embed.setColor("#2ecc71").setTimestamp();
 
-  await hook.send(embed);
+  if (process.env.SILENT_NOTIFICATIONS) {
+    console.log("Suppressing discord notification", embed);
+  } else {
+    await hook.send(embed);
+  }
 }
 
 async function notifyNetlify(version: string) {
-  await axios.post(
-    `${process.env.NETLIFY_WEBOOK}?trigger_title=Manifest+version+${version}`,
-    {}
-  );
+  if (process.env.SILENT_NOTIFICATIONS) {
+    console.log("Suppressing netlify build");
+  } else {
+    await axios.post(
+      `${process.env.NETLIFY_WEBOOK}?trigger_title=Manifest+version+${version}`,
+      {}
+    );
+  }
+}
+
+async function protect(fn: () => Promise<unknown>, message: string) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.log(message);
+    console.error(err);
+  }
 }
 
 export default async function notify(
@@ -55,9 +73,18 @@ export default async function notify(
 ) {
   const manifestId = getManifestId(manifest);
 
-  console.log("Sending Discord notification");
-  await notifyDiscord(manifestId, diffData);
+  await protect(async () => {
+    console.log("Sending Discord notification");
+    await notifyDiscord(manifestId, diffData);
+  }, "Failed to send discord notification");
 
-  console.log("Triggering Netlify build");
-  await notifyNetlify(manifestId);
+  await protect(async () => {
+    console.log("Sending Tweets");
+    await notifyTwitter(manifest, diffData);
+  }, "Failed to send Tweets");
+
+  await protect(async () => {
+    console.log("Triggering Netlify build");
+    await notifyNetlify(manifestId);
+  }, "Failed to trigger Netlify build");
 }

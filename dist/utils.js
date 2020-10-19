@@ -10,3 +10,7 @@ export function getManifestId(manifest) {
     }
     return id;
 }
+export function friendlyDiffName(name) {
+    var match = name.match(/Destiny(\w+)Definition/);
+    return match ? match[1] : name;
+}

@@ -6,8 +6,9 @@
   "license": "MIT",
   "scripts": {
     "typescript": "echo Compiling Typescript... && tsc && node --experimental-specifier-resolution=node",
-    "start": "yarn typescript ./dist/index.js",
-    "migrate": "yarn typescript ./dist/migrate.js"
+    "start": "yarn typescript  ./dist/index.js",
+    "migrate": "yarn typescript ./dist/migrate.js",
+    "image": "yarn typescript ./dist/image.js"
   },
   "dependencies": {
     "@types/async": "^3.2.3",
@@ -16,15 +17,18 @@
     "@types/lodash": "^4.14.157",
     "@types/node": "^14.0.14",
     "@types/sqlite3": "^3.1.6",
+    "@types/twit": "^2.2.28",
     "async": "^3.2.0",
     "aws-sdk": "^2.710.0",
     "axios": "^0.19.2",
     "bungie-api-ts": "^4.2.1",
+    "canvas": "^2.6.1",
     "discord-webhook-node": "^1.1.8",
     "dotenv": "^8.2.0",
     "fs-extra": "^9.0.1",
     "lodash": "^4.17.19",
     "sqlite3": "^5.0.0",
+    "twit": "^2.2.11",
     "typescript": "^4.0.2"
   }
 }

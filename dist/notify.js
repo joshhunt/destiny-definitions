@@ -38,6 +38,7 @@ import dotenv from "dotenv";
 import axios from "axios";
 import discordWebhook from "discord-webhook-node";
 import { getManifestId } from "./utils";
+import notifyTwitter from "./notify/twitter";
 var Webhook = discordWebhook.Webhook, MessageBuilder = discordWebhook.MessageBuilder;
 dotenv.config();
 if (!process.env.DISCORD_WEBHOOK) {
@@ -77,10 +78,14 @@ function notifyDiscord(version, diffData) {
                         embed = embed.addField(tableName, message);
                     });
                     embed = embed.setColor("#2ecc71").setTimestamp();
-                    return [4 /*yield*/, hook.send(embed)];
-                case 1:
+                    if (!process.env.SILENT_NOTIFICATIONS) return [3 /*break*/, 1];
+                    console.log("Suppressing discord notification", embed);
+                    return [3 /*break*/, 3];
+                case 1: return [4 /*yield*/, hook.send(embed)];
+                case 2:
                     _a.sent();
-                    return [2 /*return*/];
+                    _a.label = 3;
+                case 3: return [2 /*return*/];
             }
         });
     });
@@ -89,10 +94,34 @@ function notifyNetlify(version) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, axios.post(process.env.NETLIFY_WEBOOK + "?trigger_title=Manifest+version+" + version, {})];
-                case 1:
+                case 0:
+                    if (!process.env.SILENT_NOTIFICATIONS) return [3 /*break*/, 1];
+                    console.log("Suppressing netlify build");
+                    return [3 /*break*/, 3];
+                case 1: return [4 /*yield*/, axios.post(process.env.NETLIFY_WEBOOK + "?trigger_title=Manifest+version+" + version, {})];
+                case 2:
                     _a.sent();
-                    return [2 /*return*/];
+                    _a.label = 3;
+                case 3: return [2 /*return*/];
+            }
+        });
+    });
+}
+function protect(fn, message) {
+    return __awaiter(this, void 0, void 0, function () {
+        var err_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    return [4 /*yield*/, fn()];
+                case 1: return [2 /*return*/, _a.sent()];
+                case 2:
+                    err_1 = _a.sent();
+                    console.log(message);
+                    console.error(err_1);
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
             }
         });
     });
@@ -100,17 +129,52 @@ function notifyNetlify(version) {
 export default function notify(manifest, diffData) {
     return __awaiter(this, void 0, void 0, function () {
         var manifestId;
+        var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     manifestId = getManifestId(manifest);
-                    console.log("Sending Discord notification");
-                    return [4 /*yield*/, notifyDiscord(manifestId, diffData)];
+                    return [4 /*yield*/, protect(function () { return __awaiter(_this, void 0, void 0, function () {
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        console.log("Sending Discord notification");
+                                        return [4 /*yield*/, notifyDiscord(manifestId, diffData)];
+                                    case 1:
+                                        _a.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); }, "Failed to send discord notification")];
                 case 1:
                     _a.sent();
-                    console.log("Triggering Netlify build");
-                    return [4 /*yield*/, notifyNetlify(manifestId)];
+                    return [4 /*yield*/, protect(function () { return __awaiter(_this, void 0, void 0, function () {
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        console.log("Sending Tweets");
+                                        return [4 /*yield*/, notifyTwitter(manifest, diffData)];
+                                    case 1:
+                                        _a.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); }, "Failed to send Tweets")];
                 case 2:
+                    _a.sent();
+                    return [4 /*yield*/, protect(function () { return __awaiter(_this, void 0, void 0, function () {
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        console.log("Triggering Netlify build");
+                                        return [4 /*yield*/, notifyNetlify(manifestId)];
+                                    case 1:
+                                        _a.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); }, "Failed to trigger Netlify build")];
+                case 3:
                     _a.sent();
                     return [2 /*return*/];
             }

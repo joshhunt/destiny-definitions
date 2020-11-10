@@ -34,10 +34,15 @@ function getDiffTweets(
       removed: diff.removed.length,
       unclassified: diff.unclassified.length,
       reclassified: diff.reclassified.length,
+      modified: diff.modified.length,
     }))
     .filter((diff) => {
       const total =
-        diff.added + diff.removed + diff.unclassified + diff.reclassified;
+        diff.added +
+        diff.removed +
+        diff.unclassified +
+        diff.reclassified +
+        diff.modified;
 
       return total > 0;
     });
@@ -49,7 +54,12 @@ function getDiffTweets(
     .filter((d) => definitionsMetadata[d.tableName].junk)
     .reduce(
       (acc, item) =>
-        acc + item.added + item.reclassified + item.removed + item.unclassified,
+        acc +
+        item.added +
+        item.reclassified +
+        item.removed +
+        item.unclassified +
+        item.modified,
       0
     );
 
@@ -59,6 +69,7 @@ function getDiffTweets(
       diff.unclassified && `${diff.unclassified} unclassified`,
       diff.removed && `${diff.removed} removed`,
       diff.reclassified && `${diff.reclassified} reclassified`,
+      diff.modified && `${diff.modified} modified`,
     ].filter(Boolean);
 
     return ` - ${friendlyDiffName(diff.tableName)}: ${values.join(", ")}`;
@@ -67,7 +78,7 @@ function getDiffTweets(
   const TWEET_LIMIT = 280 - 15;
   const LINK_PLACEHOLDER = "~~link placeholder 28 char~~";
   const TOTAL_COUNT_PLACEHOLDER = "~~total count placeholder~~";
-  const link = `destiny-definitions.netlify.app/version/${manifestId}`;
+  const link = `archive.destiny.report/version/${manifestId}`;
 
   const preamble = [
     `The Destiny Definitions database has been updated to version ${bungieVersionId}`,

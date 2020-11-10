@@ -22,7 +22,7 @@ const hook = new Webhook(process.env.DISCORD_WEBHOOK);
 async function notifyDiscord(version: string, diffData: AllTableDiff) {
   let embed = (new MessageBuilder() as any)
     .setTitle("Definitions have updated")
-    .setURL(`https://destiny-definitions.netlify.app/version/${version}`)
+    .setURL(`https://archive.destiny.report/version/${version}`)
     .setDescription(`Version: ${version}`);
 
   Object.entries(diffData)

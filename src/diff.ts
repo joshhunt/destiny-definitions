@@ -1,6 +1,9 @@
 import asyncLib, { Dictionary } from "async";
 import sortBy from "lodash/sortBy";
 import keyBy from "lodash/keyBy";
+import mapValues from "lodash/mapValues";
+import pickBy from "lodash/pickBy";
+import deepDiffLib from "deep-diff";
 
 import {
   Version,
@@ -9,12 +12,23 @@ import {
   getAllVerisons,
 } from "./db";
 
-import uploadToS3, { getFromS3, makeDiffKey } from "./s3";
+import uploadToS3, {
+  getFromS3,
+  makeDiffKey,
+  makeTableModifiedDiffKey,
+} from "./s3";
 import {
   AllDestinyManifestComponents,
   DestinyManifest,
 } from "bungie-api-ts/destiny2";
 import { getManifestId } from "./utils";
+
+enum DiffKind {
+  New = "N",
+  Deleted = "D",
+  Edit = "E",
+  Array = "A",
+}
 
 const TABLE_CONCURRENCY = 1;
 
@@ -33,6 +47,7 @@ export interface TableDiff {
   unclassified: DiffItem[];
   removed: DiffItem[];
   reclassified: DiffItem[];
+  modified: DiffItem[];
 }
 export type AllTableDiff = {
   [tableName: string]: TableDiff;
@@ -63,10 +78,13 @@ export default async function diffManifestVersion(manifest: DestinyManifest) {
   delete previousTables.DestinyInventoryItemLiteDefinition;
   delete currentTables.DestinyInventoryItemLiteDefinition;
 
+  const testData: AllTableDiff = {};
+
   const data: AllTableDiff = await asyncLib.mapValuesLimit(
     currentTables,
     TABLE_CONCURRENCY,
     asyncLib.asyncify(async (currentTable: DefinitionTable) => {
+      console.log("Diffing", currentTable.name);
       const previousTable = previousTables[currentTable.name];
 
       if (!previousTable) {
@@ -84,41 +102,120 @@ export default async function diffManifestVersion(manifest: DestinyManifest) {
         getFromS3<AnyDefinitionTable>(currentTable.s3Key),
       ]);
 
-      const { missing: added, classificationChanged: unclassified } = compare(
-        currentDefinitions,
-        previousDefinitions
-      );
+      if (process.env.MAKE_TEST_DIFFS) {
+        testData[currentTable.name] = {
+          added: Object.values(currentDefinitions).map((v) => v.hash),
+          removed: [],
+          unclassified: [],
+          reclassified: [],
+          modified: [],
+        };
+      }
+
+      const {
+        missing: added,
+        classificationChanged: unclassified,
+        modified,
+        diffs,
+      } = compare(currentDefinitions, previousDefinitions, true);
 
       const { missing: removed, classificationChanged: reclassified } = compare(
         previousDefinitions,
         currentDefinitions
       );
 
-      const payload = { removed, added, unclassified, reclassified };
-      logDiff(currentTable.name, payload);
-
-      return {
+      const payload = {
         added,
         unclassified,
         removed,
         reclassified,
+        modified,
+        diffs,
       };
+
+      logDiff(currentTable.name, payload);
+
+      return payload;
     })
+  );
+
+  const diffDocument = mapValues(data, (v) =>
+    pickBy(v, (hashesList, diffName) => diffName !== "diffs")
   );
 
   await uploadToS3(
     makeDiffKey(manifestId),
-    JSON.stringify(data),
+    JSON.stringify(diffDocument),
     "application/json",
     "public-read"
   );
 
+  for (const [tableName, tableDiff] of Object.entries(data)) {
+    if ((tableDiff as any)?.diffs?.length > 0) {
+      await uploadToS3(
+        makeTableModifiedDiffKey(manifestId, tableName),
+        JSON.stringify((tableDiff as any).diffs),
+        "application/json",
+        "public-read"
+      );
+    }
+  }
+
+  if (process.env.MAKE_TEST_DIFFS) {
+    await uploadToS3(
+      makeDiffKey("test"),
+      JSON.stringify(testData),
+      "application/json",
+      "public-read"
+    );
+  }
+
   return data;
 }
 
-const compare = (defsA: AnyDefinitionTable, defsB: AnyDefinitionTable) => {
+function deefDiff(oldDef: AnyDefinition, newDef: AnyDefinition) {
+  const diffs = deepDiffLib.diff(oldDef, newDef);
+
+  if (!diffs) {
+    return undefined;
+  }
+
+  // console.log("\ndiffs:");
+
+  const cleanedDiffs = diffs.filter((diff, i) => {
+    // i !== 0 && console.log("-");
+    // console.log(diff);
+
+    const isIndexChange =
+      diff.kind == DiffKind.Edit && diff.path?.[0] === "index";
+
+    const shouldBeIgnored = isIndexChange;
+
+    // if (shouldBeIgnored) {
+    //   console.log("  ^^ ignoring");
+    // } else {
+    //   console.log("  ^^ keeping");
+    // }
+
+    return !shouldBeIgnored;
+  });
+
+  // console.log("");
+  return cleanedDiffs.length === 0 ? undefined : cleanedDiffs;
+}
+
+const compare = (
+  defsA: AnyDefinitionTable,
+  defsB: AnyDefinitionTable,
+  doDeepDiff = false
+) => {
   const missing: DiffItem[] = [];
   const classificationChanged: DiffItem[] = [];
+  const modified: DiffItem[] = [];
+  const diffs: {
+    hash: number;
+    diff: deepDiffLib.Diff<AnyDefinition, AnyDefinition>[];
+  }[] = [];
 
   Object.values(defsA).forEach((currentDef) => {
     const prevDef = defsB[currentDef.hash];
@@ -127,31 +224,40 @@ const compare = (defsA: AnyDefinitionTable, defsB: AnyDefinitionTable) => {
       missing.push(currentDef.hash);
     } else if (prevDef.redacted && !currentDef.redacted) {
       classificationChanged.push(currentDef.hash);
+    } else if (doDeepDiff) {
+      const diff = deefDiff(prevDef, currentDef);
+
+      if (diff) {
+        modified.push(currentDef.hash);
+        diffs.push({ hash: currentDef.hash, diff: diff });
+      }
     }
   });
 
-  return { missing, classificationChanged };
+  return { missing, classificationChanged, modified, diffs };
 };
 
 const logDiff = (
   name: string,
-  { removed, added, unclassified, reclassified }: TableDiff
+  { removed, added, unclassified, reclassified, modified }: TableDiff
 ) => {
   if (
     removed.length ||
     added.length ||
     unclassified.length ||
-    reclassified.length
+    reclassified.length ||
+    modified.length
   ) {
     const messages = [
       removed.length && `${removed.length} removed`,
       added.length && `${added.length} added`,
       unclassified.length && `${unclassified.length} unclassified`,
       reclassified.length && `${reclassified.length} reclassified`,
+      modified.length && `${modified.length} modified`,
     ]
       .filter((v) => v)
       .join(", ");
 
-    console.log(`Diff ${name} - ${messages}`);
+    console.log(`        ${name} - ${messages}`);
   }
 };

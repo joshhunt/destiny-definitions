@@ -74,6 +74,15 @@ async function processDefinitionTable(
 
   await uploadToS3(s3Key, resp.data, "application/json", "public-read");
 
+  if (process.env.MAKE_TEST_DIFFS) {
+    await uploadToS3(
+      makeDefinitionTableKey("test", tableName),
+      resp.data,
+      "application/json",
+      "public-read"
+    );
+  }
+
   await saveDefinitionTableRow({
     name: tableName,
     versionId: manifestId,

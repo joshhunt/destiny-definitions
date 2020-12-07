@@ -173,6 +173,14 @@ export default async function diffManifestVersion(manifest: DestinyManifest) {
   return data;
 }
 
+function isImageString(source?: string) {
+  if (!source?.match) {
+    return false;
+  }
+
+  return !!source.match(/\.(png|jpeg|jpg|gif)$/);
+}
+
 function deefDiff(oldDef: AnyDefinition, newDef: AnyDefinition) {
   const diffs = deepDiffLib.diff(oldDef, newDef);
 
@@ -180,27 +188,20 @@ function deefDiff(oldDef: AnyDefinition, newDef: AnyDefinition) {
     return undefined;
   }
 
-  // console.log("\ndiffs:");
-
   const cleanedDiffs = diffs.filter((diff, i) => {
-    // i !== 0 && console.log("-");
-    // console.log(diff);
-
     const isIndexChange =
       diff.kind == DiffKind.Edit && diff.path?.[0] === "index";
 
-    const shouldBeIgnored = isIndexChange;
+    const isImageChange =
+      diff.kind === DiffKind.Edit &&
+      isImageString(diff.lhs as any) &&
+      isImageString(diff.rhs as any);
 
-    // if (shouldBeIgnored) {
-    //   console.log("  ^^ ignoring");
-    // } else {
-    //   console.log("  ^^ keeping");
-    // }
+    const shouldBeIgnored = isIndexChange || isImageChange;
 
     return !shouldBeIgnored;
   });
 
-  // console.log("");
   return cleanedDiffs.length === 0 ? undefined : cleanedDiffs;
 }
 

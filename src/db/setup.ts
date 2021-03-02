@@ -25,8 +25,9 @@ let initDbPromise: Promise<Db> | undefined;
 
 async function downloadDatabase(forceLatest: boolean = false) {
   const dbExists = await fs.pathExists(dbFilePath);
+  const force = process.argv.some((v) => v.includes("force"));
 
-  if (!forceLatest && dbExists) {
+  if (!(forceLatest || force) && dbExists) {
     console.log("Database already exists.");
     return;
   }

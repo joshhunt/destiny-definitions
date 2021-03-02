@@ -162,3 +162,15 @@ export default async function notifyTwitter(
     index += 1;
   }
 }
+
+export async function initialTwitterNotification(manifest: DestinyManifest) {
+  const tweet: Twit.Params = {
+    status: `beep boop\n\n// new version ${manifest.version} detected\n// awaiting further analysis`,
+  };
+
+  if (process.env.SILENT_NOTIFICATIONS) {
+    console.log("Suppressing tweet", tweet);
+  } else {
+    await postTweet("statuses/update", tweet);
+  }
+}

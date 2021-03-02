@@ -130,7 +130,7 @@ export default async function diffManifestVersion(manifest: DestinyManifest) {
         removed,
         reclassified,
         modified,
-        diffs,
+        diffs, // TODO: don't return diffs like this
       };
 
       logDiff(currentTable.name, payload);

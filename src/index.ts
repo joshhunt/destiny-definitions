@@ -6,7 +6,7 @@ import { getVersion as getDbVersion } from "./db";
 import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
-import notify from "./notify";
+import notify, { sendInitialNotification } from "./notify";
 import { getManifestId } from "./utils";
 import { readLastVersionFile } from "./lastVersion";
 
@@ -42,6 +42,8 @@ async function main() {
     console.log("Manifest already exists in lastVersion.json");
     return;
   }
+
+  await sendInitialNotification(currentManifest);
 
   console.log("Processing manifest");
   await processManifest(currentManifest);

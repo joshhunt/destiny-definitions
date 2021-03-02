@@ -2,10 +2,9 @@ import dotenv from "dotenv";
 import axios from "axios";
 import discordWebhook from "discord-webhook-node";
 import { AllTableDiff } from "./diff";
-import Axios from "axios";
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import { getManifestId } from "./utils";
-import notifyTwitter from "./notify/twitter";
+import notifyTwitter, { initialTwitterNotification } from "./notify/twitter";
 
 const { Webhook, MessageBuilder } = discordWebhook;
 
@@ -31,7 +30,10 @@ async function notifyDiscord(version: string, diffData: AllTableDiff) {
     })
     .forEach(([tableName, tableDiff]) => {
       const message = Object.entries(tableDiff)
-        .filter(([, diffItems]) => diffItems.length > 0)
+        .filter(
+          ([diffName, diffItems]) =>
+            diffItems.length > 0 && diffName !== "diffs"
+        )
         .map(([diffName, diffItems]) => `${diffItems.length} ${diffName}`)
         .join(", ");
 
@@ -82,9 +84,30 @@ export default async function notify(
     console.log("Sending Tweets");
     await notifyTwitter(manifest, diffData);
   }, "Failed to send Tweets");
+}
+
+async function initialDiscordNotification(manifest: DestinyManifest) {
+  const manifestId = getManifestId(manifest);
+
+  let embed = (new MessageBuilder() as any)
+    .setTitle("Definitions are updating...")
+    .setDescription(`ID: ${manifestId}\nVersion: ${manifest.version}`);
+
+  if (process.env.SILENT_NOTIFICATIONS) {
+    console.log("Suppressing discord notification", embed);
+  } else {
+    await hook.send(embed);
+  }
+}
+
+export async function sendInitialNotification(manifest: DestinyManifest) {
+  await protect(async () => {
+    console.log("Sending initial Discord notification");
+    await initialDiscordNotification(manifest);
+  }, "Failed to send initial Discord notification");
 
   await protect(async () => {
-    console.log("Triggering Netlify build");
-    await notifyNetlify(manifestId);
-  }, "Failed to trigger Netlify build");
+    console.log("Sending initial Twitter notification");
+    await initialTwitterNotification(manifest);
+  }, "Failed to send initial Twitter notification");
 }

@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 import axios from "axios";
 import { DestinyManifest, ServerResponse } from "bungie-api-ts/destiny2";
-import { url } from "inspector";
 
 dotenv.config();
 const BUNGIE_API_KEY = process.env.BUNGIE_API_KEY || "";
@@ -11,14 +10,13 @@ if (!BUNGIE_API_KEY || BUNGIE_API_KEY === "") {
 }
 
 export function getManifest() {
-  return axios.get<ServerResponse<DestinyManifest>>(
-    "https://www.bungie.net/Platform/Destiny2/Manifest",
-    {
-      headers: {
-        "x-api-key": BUNGIE_API_KEY,
-      },
-    }
-  );
+  const url = `https://www.bungie.net/Platform/Destiny2/Manifest?bust=${Date.now()}`;
+  console.log("Requesting Manifest from", url);
+  return axios.get<ServerResponse<DestinyManifest>>(url, {
+    headers: {
+      "x-api-key": BUNGIE_API_KEY,
+    },
+  });
 }
 
 export function bungieUrl(urlBase: string) {

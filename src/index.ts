@@ -35,8 +35,11 @@ async function main() {
   const currentManifestId = getManifestId(currentManifest);
   const lastManifestId = latestUploaded.id;
 
-  console.log(`Current API manifest version: ${currentManifestId}`);
-  console.log(`lastVersion.json ID: ${lastManifestId}`);
+  console.log(`Current API manifest version GUID: ${currentManifestId}`);
+  console.log(
+    `Current API manifest bungie version: ${currentManifest.version}`
+  );
+  console.log(`lastVersion.json version GUID: ${lastManifestId}`);
 
   if (!force && currentManifestId === lastManifestId) {
     console.log("Manifest already exists in lastVersion.json");

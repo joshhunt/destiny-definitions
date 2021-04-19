@@ -2,7 +2,7 @@ import path from "path";
 import axios from "axios";
 
 import { DestinyManifest } from "bungie-api-ts/destiny2";
-import { saveVersionRow, saveDefinitionTableRow, getVersion } from "./db";
+import { saveVersionRow, saveDefinitionTableRow } from "./db";
 import uploadToS3, {
   makeManifestKey,
   makeDefinitionTableKey,

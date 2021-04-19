@@ -1,8 +1,6 @@
 import dotenv from "dotenv";
-import fs from "fs-extra";
 
 import { getManifest } from "./bungie";
-import { getVersion as getDbVersion } from "./db";
 import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";

@@ -1,4 +1,4 @@
-import asyncLib, { Dictionary } from "async";
+import asyncLib from "async";
 import sortBy from "lodash/sortBy";
 import keyBy from "lodash/keyBy";
 import mapValues from "lodash/mapValues";
@@ -188,7 +188,7 @@ function deefDiff(oldDef: AnyDefinition, newDef: AnyDefinition) {
     return undefined;
   }
 
-  const cleanedDiffs = diffs.filter((diff, i) => {
+  const cleanedDiffs = diffs.filter((diff) => {
     const isIndexChange =
       diff.kind == DiffKind.Edit && diff.path?.[0] === "index";
 

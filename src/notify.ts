@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import axios from "axios";
 import discordWebhook from "discord-webhook-node";
 import { AllTableDiff } from "./diff";
 import { DestinyManifest } from "bungie-api-ts/destiny2";
@@ -25,7 +24,7 @@ async function notifyDiscord(version: string, diffData: AllTableDiff) {
     .setDescription(`Version: ${version}`);
 
   Object.entries(diffData)
-    .filter(([tableName, tableDiff]) => {
+    .filter(([, tableDiff]) => {
       return Object.values(tableDiff).some((v) => v.length > 0);
     })
     .forEach(([tableName, tableDiff]) => {
@@ -46,17 +45,6 @@ async function notifyDiscord(version: string, diffData: AllTableDiff) {
     console.log("Suppressing discord notification", embed);
   } else {
     await hook.send(embed);
-  }
-}
-
-async function notifyNetlify(version: string) {
-  if (process.env.SILENT_NOTIFICATIONS) {
-    console.log("Suppressing netlify build");
-  } else {
-    await axios.post(
-      `${process.env.NETLIFY_WEBOOK}?trigger_title=Manifest+version+${version}`,
-      {}
-    );
   }
 }
 
@@ -89,7 +77,7 @@ export default async function notify(
 async function initialDiscordNotification(manifest: DestinyManifest) {
   const manifestId = getManifestId(manifest);
 
-  let embed = (new MessageBuilder() as any)
+  const embed = (new MessageBuilder() as any)
     .setTitle("Definitions are updating...")
     .setDescription(`ID: ${manifestId}\nVersion: ${manifest.version}`);
 

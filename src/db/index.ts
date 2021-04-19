@@ -1,5 +1,3 @@
-import { DestinyManifest } from "bungie-api-ts/destiny2";
-
 export { dbFilePath, closeDb, default as getDb } from "./setup";
 
 export {

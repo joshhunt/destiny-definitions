@@ -28,7 +28,7 @@ async function processVersion(version: ExportEntry["version"]) {
   await processManifest(manifest, new Date(createdAt));
 
   console.log("Creating diff");
-  const diffResults = await diffManifestVersion(manifest);
+  await diffManifestVersion(manifest);
 
   console.log("Creating index");
   await createIndex();

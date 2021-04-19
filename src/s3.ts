@@ -26,7 +26,6 @@ export async function getFromS3<T>(key: string): Promise<T> {
 
     if (await fileExists(localPath)) {
       return (await fs.readJSON(localPath)) as T;
-    } else {
     }
   }
 
@@ -50,8 +49,8 @@ export async function getFromS3<T>(key: string): Promise<T> {
 export async function downloadFromS3(
   key: string,
   destPath: string
-): Promise<null> {
-  return new Promise((resolve, reject) => {
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     const readStream = s3
       .getObject({ Key: key, Bucket: S3_BUCKET })
       .createReadStream();
@@ -91,7 +90,7 @@ async function saveLocally(key: string, body: string | Buffer) {
 export default async function uploadToS3(
   key: string,
   body: string | Buffer,
-  contentType: string = "application/json",
+  contentType = "application/json",
   acl?: string
 ) {
   if (process.env.LOCAL_S3) {

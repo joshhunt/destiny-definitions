@@ -133,7 +133,7 @@ export default async function notifyTwitter(
 
   let index = 0;
   let lastTweetId = "";
-  let mediaId = null; // TODO: figure out if we want the image
+  const mediaId = null; // TODO: figure out if we want the image
 
   for (const tweet of tweets) {
     const tweetParams: Record<string, any> = {

@@ -1,4 +1,5 @@
 import { DestinyManifest } from "bungie-api-ts/destiny2";
+import logger from "../lib/log";
 
 import getDb from "./setup";
 import { DatabaseRecord } from "./types";
@@ -64,9 +65,7 @@ export async function saveVersionRow(
   const { run } = await getDb();
 
   if (version.createdAt) {
-    console.warn(
-      "WARNING: version.createdAt was specified when saving version row"
-    );
+    logger.warn("version.createdAt was specified when saving version row");
   }
 
   const payload: Version = {

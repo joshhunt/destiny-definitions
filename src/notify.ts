@@ -4,6 +4,7 @@ import { AllTableDiff } from "./diff";
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import { getManifestId } from "./utils";
 import notifyTwitter, { initialTwitterNotification } from "./notify/twitter";
+import logger from "./lib/log";
 
 const { Webhook, MessageBuilder } = discordWebhook;
 
@@ -42,18 +43,17 @@ async function notifyDiscord(version: string, diffData: AllTableDiff) {
   embed = embed.setColor("#2ecc71").setTimestamp();
 
   if (process.env.SILENT_NOTIFICATIONS) {
-    console.log("Suppressing discord notification", embed);
+    logger.info("Suppressing discord notification", embed);
   } else {
     await hook.send(embed);
   }
 }
 
-async function protect(fn: () => Promise<unknown>, message: string) {
+async function protect(fn: () => Promise<unknown>, service: string) {
   try {
     return await fn();
   } catch (err) {
-    console.log(message);
-    console.error(err);
+    logger.error("Failed to send message", { error: err, service });
   }
 }
 
@@ -64,14 +64,14 @@ export default async function notify(
   const manifestId = getManifestId(manifest);
 
   await protect(async () => {
-    console.log("Sending Discord notification");
+    logger.info("Sending Discord notification");
     await notifyDiscord(manifestId, diffData);
-  }, "Failed to send discord notification");
+  }, "Discord");
 
   await protect(async () => {
-    console.log("Sending Tweets");
+    logger.info("Sending Tweets");
     await notifyTwitter(manifest, diffData);
-  }, "Failed to send Tweets");
+  }, "Twitter");
 }
 
 async function initialDiscordNotification(manifest: DestinyManifest) {
@@ -82,7 +82,7 @@ async function initialDiscordNotification(manifest: DestinyManifest) {
     .setDescription(`ID: ${manifestId}\nVersion: ${manifest.version}`);
 
   if (process.env.SILENT_NOTIFICATIONS) {
-    console.log("Suppressing discord notification", embed);
+    logger.info("Suppressing discord notification", embed);
   } else {
     await hook.send(embed);
   }
@@ -90,12 +90,12 @@ async function initialDiscordNotification(manifest: DestinyManifest) {
 
 export async function sendInitialNotification(manifest: DestinyManifest) {
   await protect(async () => {
-    console.log("Sending initial Discord notification");
+    logger.info("Sending initial Discord notification");
     await initialDiscordNotification(manifest);
-  }, "Failed to send initial Discord notification");
+  }, "Discord");
 
   await protect(async () => {
-    console.log("Sending initial Twitter notification");
+    logger.info("Sending initial Twitter notification");
     await initialTwitterNotification(manifest);
-  }, "Failed to send initial Twitter notification");
+  }, "Discord");
 }

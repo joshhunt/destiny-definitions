@@ -9,7 +9,6 @@ import uploadToS3, {
 import getDb, { closeDb } from "./db/setup";
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import { getManifestId } from "./utils";
-import { writeLastVersionFile } from "./lastVersion";
 
 export async function createIndex() {
   const allManifests = await getAllVerisons();
@@ -37,8 +36,6 @@ export async function finish(manifest: DestinyManifest) {
   await closeDb(db);
 
   const dbFile = await fs.readFile(dbFilePath);
-
-  await writeLastVersionFile({ id: manifestId });
 
   await uploadToS3(makeDatabaseKey(), dbFile, "application/vnd.sqlite3");
   await uploadToS3(

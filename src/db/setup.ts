@@ -7,6 +7,7 @@ import { makeDatabaseKey, downloadFromS3 } from "../s3";
 import { schemaSQL as versionSchemaSQL } from "./version";
 import { schemaSQL as definitionTableSchemaSQL } from "./definitionTable";
 import { DunnoLol } from "./types";
+import logger from "../lib/log";
 
 sqlite.verbose();
 
@@ -26,14 +27,14 @@ let initDbPromise: Promise<Db> | undefined;
 
 async function downloadDatabase(forceLatest = false) {
   const dbExists = await fs.pathExists(dbFilePath);
-  const force = process.argv.some((v) => v.includes("force"));
+  const argvForce = process.argv.some((v) => v.includes("force"));
 
-  if (!(forceLatest || force) && dbExists) {
-    console.log("Database already exists.");
+  if (!(forceLatest || argvForce) && dbExists) {
+    logger.info("Database already exists.", { forceLatest, argvForce });
     return;
   }
 
-  console.log("Databse doesnt exist, downloading it from S3");
+  logger.info("Databse doesnt exist, downloading it from S3");
 
   await downloadFromS3(makeDatabaseKey(), dbFilePath);
 }
@@ -72,10 +73,10 @@ export default function getDb(forceLatest = false) {
       };
 
       const dbCb = (result: unknown, error?: Error) => {
-        console.log("Database init:", result);
+        logger.info("Database init", { result });
 
         if (error) {
-          console.error("Database init error:", error);
+          logger.error("Database init error", error);
           reject(error);
         } else {
           resolve(dbPayload);

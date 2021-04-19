@@ -1,4 +1,5 @@
 import { DestinyManifest } from "bungie-api-ts/destiny2";
+import logger from "./lib/log";
 
 const LANGUAGE = "en";
 const GUID_REGEX = /(\{){0,1}[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(\}){0,1}/;
@@ -11,7 +12,10 @@ export function getManifestId(manifest: DestinyManifest) {
   const id = reMatch?.[0];
 
   if (!id) {
-    console.error("Could not get ID from manifest", manifest);
+    logger.error("Could not get ID from manifest", {
+      bungieManifestVersion: manifest.version,
+      manifest,
+    });
     throw new Error("Could not get ID from manifest");
   }
 

@@ -10,6 +10,7 @@ import uploadToS3, {
 } from "./s3";
 import { getManifestId } from "./utils";
 import { bungieUrl } from "./bungie";
+import logger from "./lib/log";
 
 const LANGUAGE = "en";
 
@@ -24,7 +25,13 @@ export default async function processManifest(
 
   await uploadMobileWorldContent(manifestId, manifest);
 
-  console.log("Saving manifest to DB");
+  logger.info("Saving manifest to database", {
+    id: manifestId,
+    version: manifest.version,
+    s3Key: manifestS3Key,
+    createdAt,
+  });
+
   await saveVersionRow({
     id: manifestId,
     version: manifest.version,
@@ -64,7 +71,7 @@ async function processDefinitionTable(
   tableName: string,
   bungiePath: string
 ) {
-  console.log(`Processing table ${tableName}`);
+  logger.info("Processing table", { tableName });
 
   const resp = await axios.get(bungieUrl(bungiePath), {
     transformResponse: (res: any) => res,

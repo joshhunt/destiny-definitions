@@ -22,6 +22,7 @@ import {
   DestinyManifest,
 } from "bungie-api-ts/destiny2";
 import { getManifestId } from "./utils";
+import logger from "./lib/log";
 
 enum DiffKind {
   New = "N",
@@ -84,11 +85,14 @@ export default async function diffManifestVersion(manifest: DestinyManifest) {
     currentTables,
     TABLE_CONCURRENCY,
     asyncLib.asyncify(async (currentTable: DefinitionTable) => {
-      console.log("Diffing", currentTable.name);
+      logger.info("Diffing table", { tableName: currentTable.name });
       const previousTable = previousTables[currentTable.name];
 
       if (!previousTable) {
-        console.warn("Unable to find previous table for", currentTable.name);
+        logger.info("Unable to find previous table, making empty diff", {
+          tableName: currentTable.name,
+        });
+
         return {
           added: [],
           unclassified: [],
@@ -133,7 +137,15 @@ export default async function diffManifestVersion(manifest: DestinyManifest) {
         diffs, // TODO: don't return diffs like this
       };
 
-      logDiff(currentTable.name, payload);
+      diffHasEntries(payload) &&
+        logger.info("Diffed table has entries", {
+          tableName: currentTable.name,
+          added: added.length,
+          unclassified: unclassified.length,
+          removed: removed.length,
+          reclassified: reclassified.length,
+          modified: modified.length,
+        });
 
       return payload;
     })
@@ -238,27 +250,6 @@ const compare = (
   return { missing, classificationChanged, modified, diffs };
 };
 
-const logDiff = (
-  name: string,
-  { removed, added, unclassified, reclassified, modified }: TableDiff
-) => {
-  if (
-    removed.length ||
-    added.length ||
-    unclassified.length ||
-    reclassified.length ||
-    modified.length
-  ) {
-    const messages = [
-      removed.length && `${removed.length} removed`,
-      added.length && `${added.length} added`,
-      unclassified.length && `${unclassified.length} unclassified`,
-      reclassified.length && `${reclassified.length} reclassified`,
-      modified.length && `${modified.length} modified`,
-    ]
-      .filter((v) => v)
-      .join(", ");
-
-    console.log(`        ${name} - ${messages}`);
-  }
+const diffHasEntries = (diff: TableDiff) => {
+  return Object.values(diff).some((v) => v.length);
 };

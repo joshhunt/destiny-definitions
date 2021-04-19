@@ -5,6 +5,7 @@ import path from "path";
 import { DefinitionTable, Version } from "./db";
 import diffManifestVersion from "./diff";
 import { createIndex, finish } from "./extraTasks";
+import logger from "./lib/log";
 import processManifest from "./manifest";
 import { getManifestId } from "./utils";
 
@@ -24,23 +25,25 @@ async function processVersion(version: ExportEntry["version"]) {
     throw new Error("missing manifest");
   }
 
-  console.log("Processing manifest");
+  logger.info("Processing manifest");
   await processManifest(manifest, new Date(createdAt));
 
-  console.log("Creating diff");
+  logger.info("Creating diff");
   await diffManifestVersion(manifest);
 
-  console.log("Creating index");
+  logger.info("Creating index");
   await createIndex();
 
-  console.log("Finishing up");
+  logger.info("Finishing up");
   await finish(manifest);
 }
 
 async function main() {
   const dataExport: ExportEntry[] = await fs.readJSON("./export.json");
 
-  console.log("Loaded", dataExport.length, "versions from export.json");
+  logger.info("Loaded versions from export.json", {
+    numberOfVersions: dataExport.length,
+  });
 
   const versions = dataExport.map((data) => {
     if (!data.version.data) {
@@ -74,19 +77,15 @@ async function main() {
   });
 
   for (const version of versions) {
-    console.log(
-      "\n\nPropcessing verson",
-      (version.data || version.manifest).version,
-      "->",
-      getManifestId(version.data || version.manifest),
-      "created at",
-      new Date(version.createdAt)
-    );
+    logger.info("Processing version", {
+      oldVersionId: (version.data || version.manifest).version,
+      newVersionId: getManifestId(version.data || version.manifest),
+      createdAt: new Date(version.createdAt),
+    });
     await processVersion(version);
   }
 }
 
-main().catch((err) => {
-  console.error("Uncaught top-level error");
-  console.error(err);
+main().catch((error) => {
+  logger.error("Uncaught top-level error", error);
 });

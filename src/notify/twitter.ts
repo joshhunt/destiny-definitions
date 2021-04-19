@@ -3,6 +3,7 @@ import Twit from "twit";
 import { promisify } from "util";
 import definitionsMetadata from "../definitionsMetadata";
 import { AllTableDiff } from "../diff";
+import logger from "../lib/log";
 import { friendlyDiffName, getManifestId } from "../utils";
 
 const T = new Twit({
@@ -149,10 +150,11 @@ export default async function notifyTwitter(
       tweetParams.auto_populate_reply_metadata = true;
     }
 
-    console.log("Posting tweet...");
+    logger.info("Tweeting");
 
     if (process.env.SILENT_NOTIFICATIONS) {
-      console.log("Suppressing tweet", tweetParams);
+      logger.info("Suppressing tweet", tweetParams);
+
       lastTweetId = Math.random().toString();
     } else {
       const data = await postTweet("statuses/update", tweetParams);
@@ -169,7 +171,7 @@ export async function initialTwitterNotification(manifest: DestinyManifest) {
   };
 
   if (process.env.SILENT_NOTIFICATIONS) {
-    console.log("Suppressing tweet", tweet);
+    logger.info("Suppressing tweet", tweet);
   } else {
     await postTweet("statuses/update", tweet);
   }

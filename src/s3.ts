@@ -2,6 +2,7 @@ import fs from "fs-extra";
 import path from "path";
 import dotenv from "dotenv";
 import AWS from "aws-sdk";
+import logger from "./lib/log";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET || "";
@@ -60,12 +61,12 @@ export async function downloadFromS3(
     readStream.on("end", () => resolve());
 
     readStream.on("error", (err) => {
-      console.error("Error with the read stream", err);
+      logger.error("Error with the read stream", err);
       reject(err);
     });
 
     writeStream.on("error", (err) => {
-      console.error("Error with the write stream", err);
+      logger.error("Error with the write stream", err);
       reject(err);
     });
 

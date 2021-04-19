@@ -1,16 +1,38 @@
+import axios from "axios";
 import fs from "fs-extra";
+import logger from "./lib/log";
 
-const FILENAME = "./lastVersion.json";
-
-interface LastVersionFile {
-  // version: string;
+interface IndexVersion {
   id: string;
+  version: string;
+  s3Key: string;
+  createdAt: string; // dates as strings
+  updatedAt: string; // dates as strings
 }
 
-export function readLastVersionFile() {
-  return fs.readJSON(FILENAME).then((d) => d as LastVersionFile);
-}
+export async function indexHasVersion(
+  versionId: string
+): Promise<IndexVersion | null> {
+  const resp = await axios.get<IndexVersion[]>(
+    "https://destiny-definitions.s3-eu-west-1.amazonaws.com/index.json"
+  );
 
-export function writeLastVersionFile(data: LastVersionFile) {
-  return fs.writeJSON(FILENAME, data);
+  const mostRecentVersion = resp.data[resp.data.length - 1];
+
+  if (mostRecentVersion.id === versionId) {
+    return mostRecentVersion;
+  }
+
+  const foundVersion = resp.data.find((v) => v.id === versionId);
+
+  if (foundVersion) {
+    logger.warn("Found version in index, but it's not the last one", {
+      versionId,
+      foundVersion,
+    });
+
+    return foundVersion;
+  }
+
+  return null;
 }

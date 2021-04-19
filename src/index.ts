@@ -6,7 +6,7 @@ import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
 import notify, { sendInitialNotification } from "./notify";
 import { getManifestId } from "./utils";
-import { readLastVersionFile } from "./lastVersion";
+import { indexHasVersion } from "./lastVersion";
 import logger from "./lib/log";
 
 dotenv.config();
@@ -21,13 +21,7 @@ async function main() {
   force && logger.warn("Force is set it true");
 
   logger.info("Loading manifest");
-  const [manifestResp, latestUploaded] = await Promise.all([
-    getManifest(),
-    readLastVersionFile(),
-  ]);
-
-  logger.info(`Loaded lastVersion.json`, { manifestId: latestUploaded.id });
-
+  const manifestResp = await getManifest();
   const currentManifest = manifestResp.data.Response;
   const currentManifestId = getManifestId(currentManifest);
 
@@ -36,10 +30,15 @@ async function main() {
     bungieManifestVersion: currentManifest.version,
   });
 
-  if (!force && currentManifestId === latestUploaded.id) {
-    logger.info("Manifest already exists in lastVersion.json, quitting");
+  const matchingLatest = await indexHasVersion(currentManifestId);
+  logger.info("Looked for version in index", matchingLatest);
+
+  if (!force && matchingLatest) {
+    logger.info("Found version in archive index, quitting");
     return;
   }
+
+  logger.info("Didn't find version in archive index, IT'S GO TIME!!!");
 
   await sendInitialNotification(currentManifest);
 

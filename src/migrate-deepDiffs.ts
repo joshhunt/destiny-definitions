@@ -1,5 +1,6 @@
 import { getAllVerisons } from "./db";
 import diffManifestVersion from "./diff";
+import logger from "./lib/log";
 
 async function main() {
   const allVersions = await getAllVerisons();
@@ -9,7 +10,6 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("Uncaught top-level error");
-  console.error(err);
+main().catch((error) => {
+  logger.error("Uncaught top-level error", error);
 });

@@ -1,7 +1,8 @@
 import winston from "winston";
 import dotenv from "dotenv";
 import { consoleFormat } from "winston-console-format";
-import LokiTransport from "winston-loki";
+import "winston-daily-rotate-file";
+import path from "path";
 
 dotenv.config();
 
@@ -39,14 +40,18 @@ const logger = createLogger({
   ],
 });
 
-if (process.env.NODE_ENV === "production" && process.env.PROMTAIL_HOST) {
+if (process.env.LOG_DIR) {
   logger.info("Configuring Loki transport");
-  logger.add(
-    new LokiTransport({
-      batching: false,
-      host: process.env.PROMTAIL_HOST,
-    })
-  );
+
+  const transport = new winston.transports.DailyRotateFile({
+    filename: path.join(process.env.LOG_DIR, "application-%DATE%.log"),
+    datePattern: "YYYY-MM-DD-HH",
+    zippedArchive: true,
+    maxSize: "20m",
+    maxFiles: "14d",
+  });
+
+  logger.add(transport);
 }
 
 export default logger;

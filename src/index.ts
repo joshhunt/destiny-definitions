@@ -7,6 +7,7 @@ import diffManifestVersion from "./diff";
 import notify, { sendInitialNotification } from "./notify";
 import { getManifestId } from "./utils";
 import { readLastVersionFile } from "./lastVersion";
+import logger from "./lib/log";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET;
@@ -17,54 +18,49 @@ if (!S3_BUCKET) {
 
 async function main() {
   const force = process.argv.some((v) => v.includes("force"));
-  force &&
-    console.log(
-      "*** Force is set to true, so it's going to run regardless! ***"
-    );
+  force && logger.warn("Force is set it true");
 
-  console.log("Loading manifest");
+  logger.info("Loading manifest");
   const [manifestResp, latestUploaded] = await Promise.all([
     getManifest(),
     readLastVersionFile(),
   ]);
 
+  logger.info(`Loaded lastVersion.json`, { manifestId: latestUploaded.id });
+
   const currentManifest = manifestResp.data.Response;
-
   const currentManifestId = getManifestId(currentManifest);
-  const lastManifestId = latestUploaded.id;
 
-  console.log(`Current API manifest version GUID: ${currentManifestId}`);
-  console.log(
-    `Current API manifest bungie version: ${currentManifest.version}`
-  );
-  console.log(`lastVersion.json version GUID: ${lastManifestId}`);
+  logger.info("Loaded current bungie manifest", {
+    manifestId: currentManifestId,
+    bungieManifestVersion: currentManifest.version,
+  });
 
-  if (!force && currentManifestId === lastManifestId) {
-    console.log("Manifest already exists in lastVersion.json");
+  if (!force && currentManifestId === latestUploaded.id) {
+    logger.info("Manifest already exists in lastVersion.json, quitting");
     return;
   }
 
   await sendInitialNotification(currentManifest);
 
-  console.log("Processing manifest");
+  logger.info("Processing manifest");
   await processManifest(currentManifest);
 
-  console.log("Creating diff");
+  logger.info("Creating diff");
   const diffResults = await diffManifestVersion(currentManifest);
 
-  console.log("Creating index");
+  logger.info("Creating index");
   await createIndex();
 
-  console.log("Finishing up");
+  logger.info("Finishing up");
   await finish(currentManifest);
 
-  console.log("Sending notifications");
+  logger.info("Sending notifications");
   await notify(currentManifest, diffResults);
 
-  console.log("All done");
+  logger.info("All done");
 }
 
 main().catch((err) => {
-  console.error("Uncaught top-level error");
-  console.error(err);
+  logger.error("Uncaught top-level error", err);
 });

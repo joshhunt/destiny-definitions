@@ -1,6 +1,9 @@
 import winston from "winston";
+import dotenv from "dotenv";
 import { consoleFormat } from "winston-console-format";
 import LokiTransport from "winston-loki";
+
+dotenv.config();
 
 const { createLogger, format, transports } = winston;
 

@@ -1,5 +1,6 @@
 import winston from "winston";
 import { consoleFormat } from "winston-console-format";
+import LokiTransport from "winston-loki";
 
 const { createLogger, format, transports } = winston;
 
@@ -34,5 +35,15 @@ const logger = createLogger({
     }),
   ],
 });
+
+if (process.env.NODE_ENV === "production" && process.env.PROMTAIL_HOST) {
+  logger.info("Configuring Loki transport");
+  logger.add(
+    new LokiTransport({
+      batching: false,
+      host: process.env.PROMTAIL_HOST,
+    })
+  );
+}
 
 export default logger;

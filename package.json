@@ -35,7 +35,8 @@
     "twit": "^2.2.11",
     "typescript": "^4.0.2",
     "winston": "^3.3.3",
-    "winston-console-format": "^1.0.8"
+    "winston-console-format": "^1.0.8",
+    "winston-loki": "^6.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.22.0",

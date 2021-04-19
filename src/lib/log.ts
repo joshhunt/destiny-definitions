@@ -42,6 +42,7 @@ const logger = createLogger({
 
 if (process.env.LOG_DIR) {
   logger.info("Configuring Loki transport");
+  require("winston-daily-rotate-file");
 
   const transport = new winston.transports.DailyRotateFile({
     filename: path.join(process.env.LOG_DIR, "application-%DATE%.log"),

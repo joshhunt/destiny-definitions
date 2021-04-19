@@ -44,8 +44,8 @@ if (process.env.LOG_DIR) {
   logger.info("Configuring Loki transport");
 
   const transport = new winston.transports.DailyRotateFile({
-    filename: path.join(process.env.LOG_DIR, "application-%DATE%.log"),
-    datePattern: "YYYY-MM-DD-HH",
+    filename: path.join(process.env.LOG_DIR, "destiny-definitions-%DATE%.log"),
+    datePattern: "YYYY-MM",
     zippedArchive: true,
     maxSize: "20m",
     maxFiles: "14d",

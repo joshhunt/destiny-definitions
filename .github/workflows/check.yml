@@ -28,7 +28,10 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Run script
+      - name: Build typescript
+        run: yarn run tsc
+
+      - name: Run checker
         run: yarn run start ${{ github.event.inputs.args }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

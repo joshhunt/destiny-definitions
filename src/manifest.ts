@@ -9,7 +9,7 @@ import uploadToS3, {
   makeMobileWorldContentKey,
 } from "./s3";
 import { getManifestId } from "./utils";
-import { bungieUrl } from "./bungie";
+import { bungieUrl, getDefinitionTable } from "./bungie";
 import logger from "./lib/log";
 
 const LANGUAGE = "en";
@@ -73,18 +73,15 @@ async function processDefinitionTable(
 ) {
   logger.info("Processing table", { tableName });
 
-  const resp = await axios.get(bungieUrl(bungiePath), {
-    transformResponse: (res: any) => res,
-    responseType: "json",
-  });
+  const definition = await getDefinitionTable(tableName, bungiePath);
   const s3Key = makeDefinitionTableKey(manifestId, tableName);
 
-  await uploadToS3(s3Key, resp.data, "application/json", "public-read");
+  await uploadToS3(s3Key, definition, "application/json", "public-read");
 
   if (process.env.MAKE_TEST_DIFFS) {
     await uploadToS3(
       makeDefinitionTableKey("test", tableName),
-      resp.data,
+      definition,
       "application/json",
       "public-read"
     );

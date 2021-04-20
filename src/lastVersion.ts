@@ -1,5 +1,4 @@
 import axios from "axios";
-import fs from "fs-extra";
 import logger from "./lib/log";
 
 interface IndexVersion {

@@ -18,9 +18,8 @@ if (!S3_BUCKET) {
 
 async function main() {
   const force = process.argv.some((v) => v.includes("force"));
-  force && logger.warn("Force is set it true");
+  logger.info("Starting up", { force });
 
-  logger.info("Loading manifest");
   const manifestResp = await getManifest();
   const currentManifest = manifestResp.data.Response;
   const currentManifestId = getManifestId(currentManifest);
@@ -38,7 +37,9 @@ async function main() {
     return;
   }
 
-  logger.info("Didn't find version in archive index, IT'S GO TIME!!!");
+  logger.info("Didn't find version in archive index, IT'S GO TIME!!!", {
+    force,
+  });
 
   await sendInitialNotification(currentManifest);
 

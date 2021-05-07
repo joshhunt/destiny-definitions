@@ -52,6 +52,8 @@ export async function downloadFromS3(
   destPath: string
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
+    logger.info("Downloading file from S3", { key, bucket: S3_BUCKET });
+
     const readStream = s3
       .getObject({ Key: key, Bucket: S3_BUCKET })
       .createReadStream();
@@ -84,6 +86,7 @@ async function s3KeyToLocalPath(key: string) {
 }
 
 async function saveLocally(key: string, body: string | Buffer) {
+  logger.warn("Saving S3 file locally", { key });
   const localPath = await s3KeyToLocalPath(key);
   await fs.writeFile(localPath, body);
 }
@@ -94,12 +97,14 @@ export default async function uploadToS3(
   contentType = "application/json",
   acl?: string
 ) {
+  logger.info("Uploading file to S3", { key, bucket: S3_BUCKET });
+
   if (process.env.LOCAL_S3) {
     await saveLocally(key, body);
     return { key };
   }
 
-  const putResponse = await s3
+  const promise = s3
     .putObject({
       Bucket: S3_BUCKET,
       Key: key,
@@ -108,6 +113,16 @@ export default async function uploadToS3(
       ACL: acl,
     })
     .promise();
+
+  promise.catch((err) => {
+    logger.error("Failed to upload file to S3", {
+      error: err,
+      key,
+      bucket: S3_BUCKET,
+    });
+  });
+
+  const putResponse = await promise;
 
   return {
     key,

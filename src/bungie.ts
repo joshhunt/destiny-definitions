@@ -1,8 +1,7 @@
 import dotenv from "dotenv";
-import axios from "axios";
 import { DestinyManifest, ServerResponse } from "bungie-api-ts/destiny2";
 import logger from "./lib/log";
-import { String } from "aws-sdk/clients/cloudsearch";
+import http from "./lib/http";
 
 dotenv.config();
 const BUNGIE_API_KEY = process.env.BUNGIE_API_KEY || "";
@@ -11,15 +10,17 @@ if (!BUNGIE_API_KEY || BUNGIE_API_KEY === "") {
   throw new Error("BUNGIE_API_KEY not defined");
 }
 
-export function getManifest() {
+export async function getManifest() {
   const url = `https://www.bungie.net/Platform/Destiny2/Manifest?bust=${Date.now()}`;
   logger.info("Requesting Manifest", { url });
 
-  return axios.get<ServerResponse<DestinyManifest>>(url, {
+  const resp = await http<ServerResponse<DestinyManifest>>(url, {
     headers: {
       "x-api-key": BUNGIE_API_KEY,
     },
   });
+
+  return resp.data.Response;
 }
 
 export function bungieUrl(urlBase: string) {
@@ -36,6 +37,9 @@ const cacheBusterStrings = [
   `?destiny-definitions-${Math.random()}`,
 ];
 
+const DEFINITIONS_TIMEOUT = 15 * 1000;
+const DEFINITIONS_MAX_ATTEMPTS = 2;
+
 export async function getDefinitionTable(
   tableName: string,
   bungiePath: string
@@ -51,10 +55,15 @@ export async function getDefinitionTable(
       });
 
     try {
-      const resp = await axios.get(`${bungieUrl(bungiePath)}${cacheBust}`, {
-        transformResponse: (res: any) => res,
-        responseType: "json",
-      });
+      const resp = await http(
+        `${bungieUrl(bungiePath)}${cacheBust}`,
+        {
+          transformResponse: (res: unknown) => res,
+          responseType: "json",
+          timeout: DEFINITIONS_TIMEOUT,
+        },
+        DEFINITIONS_MAX_ATTEMPTS
+      );
 
       if (resp.data) {
         return resp.data;

@@ -1,5 +1,5 @@
 import path from "path";
-import axios from "axios";
+import http from "./lib/http";
 
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import { saveVersionRow, saveDefinitionTableRow } from "./db";
@@ -54,7 +54,7 @@ async function uploadMobileWorldContent(
 ) {
   const mobileWorldContentPath = manifest.mobileWorldContentPaths[LANGUAGE];
 
-  const resp = await axios.get(bungieUrl(mobileWorldContentPath), {
+  const resp = await http(bungieUrl(mobileWorldContentPath), {
     responseType: "arraybuffer",
   });
 

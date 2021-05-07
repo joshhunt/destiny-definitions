@@ -6,7 +6,7 @@ import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
 import notify, { sendInitialNotification } from "./notify";
 import { getManifestId } from "./utils";
-import { indexHasVersion } from "./lastVersion";
+import { archiveIndexHasVersion, getArchiveIndex } from "./lastVersion";
 import logger from "./lib/log";
 
 dotenv.config();
@@ -18,10 +18,18 @@ if (!S3_BUCKET) {
 
 async function main() {
   const force = process.argv.some((v) => v.includes("force"));
-  logger.info("Starting up", { force });
+  logger.info("Starting up", {
+    force,
+    S3_BUCKET,
+    LOCAL_S3: process.env.LOCAL_S3,
+    SILENT_NOTIFICATIONS: process.env.SILENT_NOTIFICATIONS,
+  });
 
-  const manifestResp = await getManifest();
-  const currentManifest = manifestResp.data.Response;
+  const [currentManifest, archiveIndex] = await Promise.all([
+    getManifest(),
+    getArchiveIndex(),
+  ]);
+
   const currentManifestId = getManifestId(currentManifest);
 
   logger.info("Loaded current bungie manifest", {
@@ -29,7 +37,10 @@ async function main() {
     bungieManifestVersion: currentManifest.version,
   });
 
-  const matchingLatest = await indexHasVersion(currentManifestId);
+  const matchingLatest = await archiveIndexHasVersion(
+    archiveIndex,
+    currentManifestId
+  );
   logger.info("Looked for version in index", matchingLatest);
 
   if (!force && matchingLatest) {

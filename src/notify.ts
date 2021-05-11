@@ -97,5 +97,5 @@ export async function sendInitialNotification(manifest: DestinyManifest) {
   await protect(async () => {
     logger.info("Sending initial Twitter notification");
     await initialTwitterNotification(manifest);
-  }, "Discord");
+  }, "Twitter");
 }

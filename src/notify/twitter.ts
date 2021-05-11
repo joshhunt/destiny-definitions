@@ -167,7 +167,7 @@ export default async function notifyTwitter(
 
 export async function initialTwitterNotification(manifest: DestinyManifest) {
   const tweet: Twit.Params = {
-    status: `beep boop\n\n// new version ${manifest.version} detected\n// awaiting further analysis`,
+    status: `[bzzt] Incoming Vex transmission.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
   };
 
   if (process.env.SILENT_NOTIFICATIONS) {

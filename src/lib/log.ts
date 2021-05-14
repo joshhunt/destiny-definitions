@@ -45,7 +45,7 @@ if (process.env.LOG_DIR) {
     filename: path.join(process.env.LOG_DIR, "destiny-definitions-%DATE%.log"),
     dirname: process.env.LOG_DIR,
     createSymlink: true,
-    datePattern: "YYYY-MM",
+    datePattern: "YYYY-MM-DD",
     zippedArchive: true,
     maxSize: "20m",
     maxFiles: "14d",

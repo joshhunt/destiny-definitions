@@ -11,9 +11,7 @@ const { createLogger, format, transports } = winston;
 const logger = createLogger({
   level: "info",
   format: format.combine(
-    format.timestamp({
-      format: "YYYY-MM-DD HH:mm:ss",
-    }),
+    format.timestamp(),
     format.errors({ stack: true }),
     format.splat(),
     format.json()
@@ -45,6 +43,8 @@ if (process.env.LOG_DIR) {
 
   const transport = new winston.transports.DailyRotateFile({
     filename: path.join(process.env.LOG_DIR, "destiny-definitions-%DATE%.log"),
+    dirname: process.env.LOG_DIR,
+    createSymlink: true,
     datePattern: "YYYY-MM",
     zippedArchive: true,
     maxSize: "20m",

@@ -4,7 +4,7 @@ interface DefinitionMetadata {
   index: number;
 }
 
-export default [
+const definitionsMetadata: Record<string, DefinitionMetadata | undefined> = [
   { name: "DestinyInventoryItemDefinition" },
   { name: "DestinyInventoryBucketDefinition" },
   { name: "DestinySandboxPerkDefinition" },
@@ -66,12 +66,12 @@ export default [
   { name: "DestinyBondDefinition" },
   { name: "DestinyReportReasonCategoryDefinition" },
   { name: "DestinyPlugSetDefinition" },
+
   { name: "DestinyRewardItemListDefinition", junk: true },
   { name: "DestinySackRewardItemListDefinition", junk: true },
   { name: "DestinySandboxPatternDefinition", junk: true },
   { name: "DestinyUnlockDefinition", junk: true },
   { name: "DestinyMaterialRequirementSetDefinition", junk: true },
-
   { name: "DestinyNodeStepSummaryDefinition", junk: true },
   { name: "DestinyArtDyeChannelDefinition", junk: true },
   { name: "DestinyArtDyeReferenceDefinition", junk: true },
@@ -92,7 +92,7 @@ export default [
   { name: "DestinyUnlockExpressionMappingDefinition", junk: true },
   { name: "DestinyRewardAdjusterPointerDefinition", junk: true },
   { name: "DestinyInventoryItemLiteDefinition", junk: true },
-].reduce((acc, item, index) => {
+].reduce((acc: Record<string, DefinitionMetadata>, item, index) => {
   return {
     ...acc,
     [item.name]: {
@@ -100,4 +100,18 @@ export default [
       index,
     },
   };
-}, {} as Record<string, DefinitionMetadata>);
+}, {});
+
+// export default definitionsMetadata;
+
+export default function getDefinitionMetadata(
+  tableName: string
+): DefinitionMetadata {
+  return (
+    definitionsMetadata[tableName] ?? {
+      name: tableName,
+      junk: false,
+      index: 9999,
+    }
+  );
+}

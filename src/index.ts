@@ -4,7 +4,7 @@ import { getManifest } from "./bungie";
 import processManifest from "./manifest";
 import { createIndex, finish } from "./extraTasks";
 import diffManifestVersion from "./diff";
-import notify, { sendInitialNotification } from "./notify";
+import notify, { sendInitialNotification } from "./lib/notify";
 import { getManifestId } from "./utils";
 import { archiveIndexHasVersion, getArchiveIndex } from "./lastVersion";
 import logger from "./lib/log";

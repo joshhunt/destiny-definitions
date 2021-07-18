@@ -38,7 +38,8 @@ function sortVersions(allManifests: Version[]): Version[] {
   return sortBy(allManifests, (v) => v.createdAt);
 }
 
-type AnyDefinitionTable = AllDestinyManifestComponents[keyof AllDestinyManifestComponents];
+type AnyDefinitionTable =
+  AllDestinyManifestComponents[keyof AllDestinyManifestComponents];
 type AnyDefinition = AnyDefinitionTable[keyof AnyDefinitionTable];
 
 export type DiffItem = AnyDefinition["hash"];

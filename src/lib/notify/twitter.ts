@@ -1,10 +1,10 @@
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import Twit from "twit";
 import { promisify } from "util";
-import definitionsMetadata from "../definitionsMetadata";
-import { AllTableDiff } from "../diff";
-import logger from "../lib/log";
-import { friendlyDiffName, getManifestId } from "../utils";
+import { AllTableDiff } from "../../diff";
+import logger from "../log";
+import { friendlyDiffName, getManifestId } from "../../utils";
+import { createSortedDiffSummary } from "./utils";
 
 const T = new Twit({
   consumer_key: process.env.TWITTER_CK || "",
@@ -22,55 +22,15 @@ function getDiffTweets(
   bungieVersionId: string,
   diffData: AllTableDiff
 ) {
-  const sortedDiff = Object.entries(diffData)
-    .sort(([nameA], [nameB]) => {
-      const indexA = definitionsMetadata[nameA].index;
-      const indexB = definitionsMetadata[nameB].index;
-
-      return indexA - indexB;
-    })
-    .map(([tableName, diff]) => ({
-      tableName,
-      added: diff.added.length,
-      removed: diff.removed.length,
-      unclassified: diff.unclassified.length,
-      reclassified: diff.reclassified.length,
-      modified: diff.modified.length,
-    }))
-    .filter((diff) => {
-      const total =
-        diff.added +
-        diff.removed +
-        diff.unclassified +
-        diff.reclassified +
-        diff.modified;
-
-      return total > 0;
-    });
-
-  const mainDiff = sortedDiff.filter(
-    (d) => !definitionsMetadata[d.tableName].junk
-  );
-  const junkDiffCount = sortedDiff
-    .filter((d) => definitionsMetadata[d.tableName].junk)
-    .reduce(
-      (acc, item) =>
-        acc +
-        item.added +
-        item.reclassified +
-        item.removed +
-        item.unclassified +
-        item.modified,
-      0
-    );
+  const { mainDiff, junkCount } = createSortedDiffSummary(diffData);
 
   const diffLines = mainDiff.map((diff) => {
     const values = [
-      diff.added && `${diff.added} added`,
-      diff.unclassified && `${diff.unclassified} unclassified`,
-      diff.removed && `${diff.removed} removed`,
-      diff.reclassified && `${diff.reclassified} reclassified`,
-      diff.modified && `${diff.modified} modified`,
+      diff.diff.added && `${diff.diff.added} added`,
+      diff.diff.unclassified && `${diff.diff.unclassified} unclassified`,
+      diff.diff.removed && `${diff.diff.removed} removed`,
+      diff.diff.reclassified && `${diff.diff.reclassified} reclassified`,
+      diff.diff.modified && `${diff.diff.modified} modified`,
     ].filter(Boolean);
 
     return ` - ${friendlyDiffName(diff.tableName)}: ${values.join(", ")}`;
@@ -91,8 +51,8 @@ function getDiffTweets(
 
   const footer = [];
 
-  if (junkDiffCount > 0) {
-    footer.push(`\nPlus ${junkDiffCount} changes to junk tables`);
+  if (junkCount > 0) {
+    footer.push(`\nPlus ${junkCount} changes to junk tables`);
   }
 
   const tweets: string[][] = [[]];
@@ -124,7 +84,7 @@ function getDiffTweets(
   });
 }
 
-export default async function notifyTwitter(
+export async function notifyTwitterDone(
   manifest: DestinyManifest,
   diffData: AllTableDiff
 ) {
@@ -152,7 +112,7 @@ export default async function notifyTwitter(
 
     logger.info("Tweeting");
 
-    if (process.env.SILENT_NOTIFICATIONS) {
+    if (process.env.SILENT_TWITTER) {
       logger.info("Suppressing tweet", tweetParams);
 
       lastTweetId = Math.random().toString();
@@ -165,12 +125,12 @@ export default async function notifyTwitter(
   }
 }
 
-export async function initialTwitterNotification(manifest: DestinyManifest) {
+export async function notifyTwitterStarting(manifest: DestinyManifest) {
   const tweet: Twit.Params = {
-    status: `[bzzt] Incoming Vex transmission.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
+    status: `[bzzt] Intercepting Vex transmission.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
   };
 
-  if (process.env.SILENT_NOTIFICATIONS) {
+  if (process.env.SILENT_TWITTER) {
     logger.info("Suppressing tweet", tweet);
   } else {
     await postTweet("statuses/update", tweet);

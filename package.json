@@ -5,9 +5,10 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "n": "node --experimental-specifier-resolution=node",
+    "n": "node --experimental-specifier-resolution=node --inspect",
     "typescript": "echo Compiling Typescript... && tsc && yarn n",
     "start": "yarn n ./dist/index.js",
+    "test-discord": "yarn typescript ./dist/testDiscord.js",
     "dev": "yarn typescript ./dist/index.js",
     "migrate": "yarn typescript ./dist/migrate-deepDiffs.js",
     "image": "yarn typescript ./dist/image.js"
@@ -27,6 +28,7 @@
     "bungie-api-ts": "^4.2.1",
     "deep-diff": "^1.0.2",
     "discord-webhook-node": "^1.1.8",
+    "discord.js": "^12.5.3",
     "dotenv": "^8.2.0",
     "eslint-config-prettier": "^8.2.0",
     "fs-extra": "^9.0.1",

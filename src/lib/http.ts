@@ -19,7 +19,7 @@ export default async function httpGet<T = any>(
 
   while (attempt < maxAttempts) {
     attempt += 1;
-    logger.info("HTTP request", {
+    logger.debug("HTTP request", {
       url,
       attempt,
       timeout: options.timeout,
@@ -36,14 +36,14 @@ export default async function httpGet<T = any>(
 
       lastError = resp.statusText;
 
-      logger.error("HTTP request returned non-okay", {
+      logger.warn("HTTP request returned non-okay", {
         url,
         status: resp.status,
         statusText: resp.statusText,
       });
     } catch (error) {
       lastError = error;
-      logger.error("Exception from HTTP request", { error, url });
+      logger.warn("Exception from HTTP request", { error, url });
     }
   }
 

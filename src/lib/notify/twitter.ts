@@ -133,7 +133,7 @@ export async function notifyTwitterDone(
 
 export async function notifyTwitterStarting(manifest: DestinyManifest) {
   const tweet: Twit.Params = {
-    status: `[bzzt] Intercepting Vex transmission.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
+    status: `Savathûn's whispers are growing louder.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
   };
 
   if (process.env.SILENT_TWITTER) {

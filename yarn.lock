@@ -439,10 +439,10 @@ buffer@4.9.2:
     ieee754 "^1.1.4"
     isarray "^1.0.0"
 
-bungie-api-ts@^4.2.1:
-  version "4.3.0"
-  resolved "https://registry.npmjs.org/bungie-api-ts/-/bungie-api-ts-4.3.0.tgz"
-  integrity sha512-qFLQKY98xxddqeg1HRgs6E/+IHRnl6IsOQbvSpJmp3i4+nZZU0i2DTEgFVDieXy0n4l88fNg0UoWrnwK8OTVPA==
+bungie-api-ts@^4.9.0:
+  version "4.9.0"
+  resolved "https://registry.yarnpkg.com/bungie-api-ts/-/bungie-api-ts-4.9.0.tgz#b7fad937f57a378fed20097a92fbe3acda0ce4f5"
+  integrity sha512-mAcKj1ouw7ItCiTRVHeMIVAkBurmKoU+Scq1jIUGxY8ZUdhynb5IKvqqQdlkcrwa31jWmH9Pk5LezuPoUthzdw==
 
 call-bind@^1.0.0:
   version "1.0.2"

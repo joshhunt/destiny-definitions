@@ -45,14 +45,20 @@ function getDiffTweets(
     `The Destiny Definitions database has been updated to version ${bungieVersionId}`,
     "",
     `See what changed at ${LINK_PLACEHOLDER}`,
-    "",
-    "Changes:",
   ];
 
   const footer = [];
 
+  if (mainDiff.length > 0) {
+    preamble.push("\nChanges:");
+  }
+
   if (junkCount > 0) {
-    footer.push(`\nPlus ${junkCount} changes to junk tables`);
+    footer.push(
+      `\n${
+        mainDiff.length > 0 ? "Plus" : "Only"
+      } ${junkCount} changes to junk tables`
+    );
   }
 
   const tweets: string[][] = [[]];

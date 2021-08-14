@@ -5,6 +5,10 @@ if (!process.env.DISCORD_DEFINITIONS_HOOK) {
   throw new Error("DISCORD_DEFINITIONS_HOOK not defined");
 }
 
+if (!process.env.DISCORD_NEW_WEAPONS_HOOK) {
+  throw new Error("DISCORD_NEW_WEAPONS_HOOK not defined");
+}
+
 const DISCORD_WEBHOOK_RE =
   /discord\.com\/api\/webhooks\/(?<id>\w+)\/(?<token>[\w-_]+)/i;
 
@@ -27,12 +31,8 @@ export const definitionsHook = createWebhook(
   process.env.DISCORD_DEFINITIONS_HOOK ?? ""
 );
 
+export const newWeaponsHook = createWebhook(
+  process.env.DISCORD_NEW_WEAPONS_HOOK ?? ""
+);
+
 export const definitionsBotToken = process.env.DISCORD_BOT_TOKEN;
-
-// export const cmsHook = createWebhook(process.env.DISCORD_CMS_HOOK ?? "");
-
-// export const gtmHook = createWebhook(process.env.DISCORD_GTM_HOOK ?? "");
-
-// export const settingsHook = createWebhook(
-//   process.env.DISCORD_SETTINGS_HOOK ?? ""
-// );

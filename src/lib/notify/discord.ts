@@ -1,10 +1,21 @@
-import { DestinyManifest } from "bungie-api-ts/destiny2/interfaces";
+import {
+  DestinyInventoryItemDefinition,
+  DestinyItemType,
+  DestinyManifest,
+  TierType,
+} from "bungie-api-ts/destiny2/interfaces";
 import Discord, { Message, MessageEmbed, TextChannel } from "discord.js";
 import { AllTableDiff } from "../../diff";
 import logger from "../log";
 import { friendlyDiffName, getManifestId } from "../../utils";
-import { definitionsBotToken, definitionsHook } from "./discordWebhooks";
+import {
+  definitionsBotToken,
+  definitionsHook,
+  newWeaponsHook,
+} from "./discordWebhooks";
 import { createSortedDiffSummary } from "./utils";
+import { getDefinitionTable } from "../../bungie";
+import { AllDestinyManifestComponents } from "bungie-api-ts/destiny2";
 
 const GREEN = 0x2ecc71;
 
@@ -17,7 +28,15 @@ const EMOJI: Record<string, string> = {
   modified: "<:changed_diff:865996674521235507>",
   unclassified: "<:unclassified_diff:865996812267946015>",
   reclassified: "<:reclassified_diff:865996745942499378>",
+
+  damageType_2303181850: "<:damageType_2303181850:876139450843922482>",
+  damageType_3454344768: "<:damageType_3454344768:876139450848129084>",
+  damageType_151347233: "<:damageType_151347233:876143477572902952>",
+  damageType_1847026933: "<:damageType_1847026933:876143520262549525>",
+  damageType_3373582085: "<:damageType_3373582085:876143563161886781>",
 };
+
+const PERK_SOCKET_TYPES = [2614797986];
 
 // perm 11264
 // https://discord.com/oauth2/authorize?client_id=861909035472257055&permissions=11264&scope=bot
@@ -99,7 +118,8 @@ export async function notifyDiscordDone(
   diffData: AllTableDiff
 ) {
   const manifestId = getManifestId(manifest);
-  const { mainDiff, junkDiff, junkCount } = createSortedDiffSummary(diffData);
+  const { mainDiff, junkDiff, junkCount, mainCount } =
+    createSortedDiffSummary(diffData);
 
   logger.debug("Main diff", mainDiff);
   logger.debug("Junk diff", junkDiff);
@@ -117,7 +137,7 @@ export async function notifyDiscordDone(
   addTablesToEmbed(embed, mainDiff);
 
   const junkEmbed = new MessageEmbed().setDescription(
-    `Plus ${junkCount} changes to junk tables`
+    `${mainCount > 0 ? "Plus" : "Only"} ${junkCount} changes to junk tables`
   );
   addTablesToEmbed(junkEmbed, junkDiff);
 
@@ -146,5 +166,182 @@ export async function notifyDiscordStarting(manifest: DestinyManifest) {
   } else {
     const message = await definitionsHook.send(embed);
     await crosspostMessage(message);
+  }
+}
+
+async function loadDefs<TTable extends keyof AllDestinyManifestComponents>(
+  manifest: DestinyManifest,
+  tableName: TTable
+): Promise<AllDestinyManifestComponents[TTable]> {
+  const url = manifest.jsonWorldComponentContentPaths.en[tableName];
+  const json = await getDefinitionTable(tableName, url);
+
+  const defs: AllDestinyManifestComponents[TTable] = JSON.parse(json);
+
+  return defs;
+}
+
+export async function notifyDiscordDetailed(
+  manifest: DestinyManifest,
+  diffData: AllTableDiff
+) {
+  const itemDefs = await loadDefs(manifest, "DestinyInventoryItemDefinition");
+  const damageTypesDefs = await loadDefs(
+    manifest,
+    "DestinyDamageTypeDefinition"
+  );
+  const plugSetDefs = await loadDefs(manifest, "DestinyPlugSetDefinition");
+  const collectibleDefs = await loadDefs(
+    manifest,
+    "DestinyCollectibleDefinition"
+  );
+
+  await notifyItems(
+    diffData.DestinyInventoryItemDefinition.added,
+    itemDefs,
+    damageTypesDefs,
+    plugSetDefs,
+    collectibleDefs
+  );
+
+  await notifyItems(
+    diffData.DestinyInventoryItemDefinition.unclassified,
+    itemDefs,
+    damageTypesDefs,
+    plugSetDefs,
+    collectibleDefs
+  );
+}
+
+function findIntrinsicPerk(
+  itemDef: DestinyInventoryItemDefinition,
+  definitions: AllDestinyManifestComponents["DestinyInventoryItemDefinition"]
+) {
+  const socket = itemDef.sockets?.socketEntries?.find((socket) => {
+    const def = definitions[socket.singleInitialItemHash];
+    return (
+      def?.uiItemDisplayStyle === "ui_display_style_intrinsic_plug" &&
+      def.displayProperties.name
+    );
+  });
+
+  return socket && definitions[socket.singleInitialItemHash];
+}
+
+const bungieUrl = (path: string) =>
+  path ? `https://www.bungie.net${path}` : "";
+
+async function notifyItems(
+  itemHashes: number[],
+  itemDefs: AllDestinyManifestComponents["DestinyInventoryItemDefinition"],
+  damageTypesDefs: AllDestinyManifestComponents["DestinyDamageTypeDefinition"],
+  plugSetDefs: AllDestinyManifestComponents["DestinyPlugSetDefinition"],
+  collectibleDefs: AllDestinyManifestComponents["DestinyCollectibleDefinition"]
+) {
+  const itemsToNotify = itemHashes
+    .map((v) => itemDefs[v])
+    .filter(
+      (v) =>
+        v?.redacted === false &&
+        v.displayProperties.name &&
+        v.itemCategoryHashes &&
+        !v.itemCategoryHashes.includes(3109687656) && // exclude dummies
+        v.itemType === DestinyItemType.Weapon
+    )
+    .sort((itemA, itemB) => {
+      const tierScoreA = (itemA.inventory?.tierType || 0) * -1 * 100000;
+      const scoreA = tierScoreA + itemA.index;
+
+      const tierScoreB = (itemB.inventory?.tierType || 0) * -1 * 100000;
+      const scoreB = tierScoreB + itemB.index;
+
+      return scoreA - scoreB;
+    });
+
+  if (itemsToNotify.length < 1) {
+    return;
+  }
+
+  const messages: (MessageEmbed | string)[][] = [[]];
+
+  for (const item of itemsToNotify) {
+    const damageType = damageTypesDefs[item.defaultDamageTypeHash ?? 0];
+    const collectible = collectibleDefs[item.collectibleHash ?? 0];
+    const intrinsicPerk = findIntrinsicPerk(item, itemDefs);
+
+    const randomPerkSockets =
+      item.sockets?.socketEntries.filter(
+        (v) =>
+          v.randomizedPlugSetHash &&
+          PERK_SOCKET_TYPES.includes(v.socketTypeHash)
+      ) ?? [];
+
+    const embed = new MessageEmbed()
+      .setTitle(item.displayProperties.name)
+      .setAuthor(
+        item.itemTypeDisplayName,
+        bungieUrl(damageType?.displayProperties?.icon)
+      )
+      .setDescription([
+        `_${item.flavorText ?? item.displayProperties.description ?? ""}_`,
+        ...(collectible ? ["", collectible?.sourceString] : []),
+      ])
+      .setThumbnail(bungieUrl(item.displayProperties.icon))
+      .setImage(bungieUrl(item.screenshot));
+
+    if (intrinsicPerk && item.inventory?.tierType === TierType.Exotic) {
+      embed.addField(
+        `Exotic perk`,
+        `**${intrinsicPerk.displayProperties.name}:** ${intrinsicPerk.displayProperties.description}`
+      );
+    } else if (intrinsicPerk) {
+      embed.setAuthor(
+        embed.author?.name + " - " + intrinsicPerk.displayProperties.name,
+        embed.author?.iconURL
+      );
+    }
+
+    for (const socket of randomPerkSockets) {
+      const plugSet = plugSetDefs[socket.randomizedPlugSetHash ?? 0];
+      if (!plugSet) continue;
+
+      const curatedPerk = itemDefs[socket.singleInitialItemHash];
+
+      const randomPerks = plugSet.reusablePlugItems
+        .filter(
+          (plug) =>
+            plug.currentlyCanRoll && plug.plugItemHash !== curatedPerk?.hash
+        )
+        .map((rpi) => itemDefs[rpi.plugItemHash])
+        .map((v) => (v && v.displayProperties.name) as string)
+        .reduce(
+          (acc, v) => (acc.includes(v) ? acc : [...acc, v]),
+          [] as string[]
+        )
+        .join("\n");
+
+      embed.addField(
+        curatedPerk?.displayProperties?.name ?? `_No curated perk_`,
+        randomPerks,
+        true
+      );
+    }
+
+    const embeds = messages[messages.length - 1];
+    embeds.push(embed);
+
+    if (embeds.length === 10) {
+      messages.push([]);
+    }
+  }
+
+  const totalEmbeds = messages.reduce((acc, embeds) => acc + embeds.length, 0);
+  logger.info("Sending detailed Discord notifications", {
+    totalEmbeds,
+    messageCount: messages.length,
+  });
+
+  for (const msg of messages) {
+    await newWeaponsHook?.send(msg);
   }
 }

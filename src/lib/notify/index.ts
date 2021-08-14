@@ -2,7 +2,11 @@ import dotenv from "dotenv";
 import { AllTableDiff } from "../../diff";
 import { DestinyManifest } from "bungie-api-ts/destiny2";
 import logger from "../log";
-import { notifyDiscordDone, notifyDiscordStarting } from "./discord";
+import {
+  notifyDiscordDetailed,
+  notifyDiscordDone,
+  notifyDiscordStarting,
+} from "./discord";
 import { notifyTwitterDone, notifyTwitterStarting } from "./twitter";
 
 dotenv.config();
@@ -28,6 +32,11 @@ export default async function notify(
     logger.info("Sending Tweets");
     await notifyTwitterDone(manifest, diffData);
   }, "Twitter");
+
+  await protect(async () => {
+    logger.info("Detailed Discord notification");
+    await notifyDiscordDetailed(manifest, diffData);
+  }, "Discord");
 }
 
 export async function sendInitialNotification(manifest: DestinyManifest) {

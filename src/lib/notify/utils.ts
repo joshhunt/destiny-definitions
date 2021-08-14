@@ -37,6 +37,17 @@ export function createSortedDiffSummary(diffData: AllTableDiff) {
     (d) => getDefinitionMetadata(d.tableName).junk
   );
 
+  const mainCount = mainDiff.reduce((acc, table) => {
+    return (
+      acc +
+      table.diff.added +
+      table.diff.modified +
+      table.diff.reclassified +
+      table.diff.removed +
+      table.diff.unclassified
+    );
+  }, 0);
+
   const junkCount = junkDiff.reduce((acc, table) => {
     return (
       acc +
@@ -48,5 +59,5 @@ export function createSortedDiffSummary(diffData: AllTableDiff) {
     );
   }, 0);
 
-  return { mainDiff, junkDiff, junkCount };
+  return { mainDiff, junkDiff, mainCount, junkCount };
 }

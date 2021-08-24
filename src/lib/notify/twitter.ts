@@ -131,9 +131,11 @@ export async function notifyTwitterDone(
   }
 }
 
+const FLAVOR_TEXT = `S͢av̨athu͠n's̨ whis͜p͟e͡r̀s̛ ̶are g̝̘͇̗̺͈ͅr͏ǫ̱̟͉w̬i͚̤͕n̴͖̹̙͉͇͓̥g̡̣̤ͅ l̡̨͓̫̻̟̠̙̭̼o͔̰̫̰̲̕͢ͅú͉̟͕̱̜̱̫̯̰d̴̴̸̫̮̳e̖͉̗ṟ̷̜̥̱̖͓ͅ`;
+
 export async function notifyTwitterStarting(manifest: DestinyManifest) {
   const tweet: Twit.Params = {
-    status: `Savathûn's whispers are growing louder.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
+    status: `${FLAVOR_TEXT}.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
   };
 
   if (process.env.SILENT_TWITTER) {

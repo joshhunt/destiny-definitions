@@ -5,6 +5,7 @@ import { AllTableDiff } from "../../diff";
 import logger from "../log";
 import { friendlyDiffName, getManifestId } from "../../utils";
 import { createSortedDiffSummary } from "./utils";
+import lodash from "lodash";
 
 const T = new Twit({
   consumer_key: process.env.TWITTER_CK || "",
@@ -131,11 +132,19 @@ export async function notifyTwitterDone(
   }
 }
 
-const FLAVOR_TEXT = `S͢av̨athu͠n's̨ whis͜p͟e͡r̀s̛ ̶are g̝̘͇̗̺͈ͅr͏ǫ̱̟͉w̬i͚̤͕n̴͖̹̙͉͇͓̥g̡̣̤ͅ l̡̨͓̫̻̟̠̙̭̼o͔̰̫̰̲̕͢ͅú͉̟͕̱̜̱̫̯̰d̴̴̸̫̮̳e̖͉̗ṟ̷̜̥̱̖͓ͅ`;
+const FLAVOR_TEXT_CHOICES = [
+  "The Nine have another truth to share with you.",
+  "Xur brings a message from the Nine.",
+  "A horse.",
+  "Starhorse graces you with its presence.",
+  "It was the Nine's - now it is yours.",
+  "Accept this gift from the Nine.",
+];
 
 export async function notifyTwitterStarting(manifest: DestinyManifest) {
+  const flavorText = lodash.sample(FLAVOR_TEXT_CHOICES);
   const tweet: Twit.Params = {
-    status: `${FLAVOR_TEXT}.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
+    status: `${flavorText}.\n\nNew version ${manifest.version} detected.\nAwaiting further analysis...`,
   };
 
   if (process.env.SILENT_TWITTER) {

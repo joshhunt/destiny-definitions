@@ -19,6 +19,7 @@ if (!S3_BUCKET) {
 async function main() {
   const force = process.argv.some((v) => v.includes("force"));
   logger.info("Starting up", {
+    fakeVersion: "pre-30th",
     force,
     S3_BUCKET,
     LOCAL_S3: process.env.LOCAL_S3,

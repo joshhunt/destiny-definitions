@@ -133,12 +133,11 @@ export async function notifyTwitterDone(
 }
 
 const FLAVOR_TEXT_CHOICES = [
-  "The Nine have another truth to share with you.",
-  "Xur brings a message from the Nine.",
-  "A horse.",
-  "Starhorse graces you with its presence.",
-  "It was the Nine's - now it is yours.",
-  "Accept this gift from the Nine.",
+  "The Witness has seen enough…",
+  "Enough.",
+  "A message rises from the Deep.",
+  "The Witness brings a message…",
+  "An ancient Lubraean artifact has been discovered…",
 ];
 
 export async function notifyTwitterStarting(manifest: DestinyManifest) {

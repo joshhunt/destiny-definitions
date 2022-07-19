@@ -14,8 +14,9 @@ dotenv.config();
 async function protect(fn: () => Promise<unknown>, service: string) {
   try {
     return await fn();
-  } catch (err) {
-    logger.error("Failed to send message", { error: err, service });
+  } catch (err: any) {
+    const error = err?.toString() ?? "unknown error - no .toString() method";
+    logger.error("Failed to send message", { error: error, service });
   }
 }
 
@@ -40,6 +41,10 @@ export default async function notify(
 }
 
 export async function sendInitialNotification(manifest: DestinyManifest) {
+  if (process.env.SUPPRESS_INITIAL_NOTIFICATION) {
+    return;
+  }
+
   await protect(async () => {
     logger.info("Sending initial Discord notification");
     await notifyDiscordStarting(manifest);

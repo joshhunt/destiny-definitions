@@ -55,6 +55,8 @@ export type AllTableDiff = {
   [tableName: string]: TableDiff;
 };
 
+const FIRST_VERSION_ID = "ef65788d-4bda-4a32-9b89-e8d60bc00d7d";
+
 export default async function diffManifestVersion(manifest: DestinyManifest) {
   const manifestId = getManifestId(manifest);
   const allManifests = await getAllVerisons();
@@ -89,16 +91,37 @@ export default async function diffManifestVersion(manifest: DestinyManifest) {
       logger.info("Diffing table", { tableName: currentTable.name });
       const previousTable = previousTables[currentTable.name];
 
-      if (!previousTable) {
-        logger.info("Unable to find previous table, making empty diff", {
-          tableName: currentTable.name,
-        });
+      if (!previousTable && manifestId === FIRST_VERSION_ID) {
+        logger.info(
+          "Unable to find previous table, and this is the first version, making empty diff",
+          {
+            tableName: currentTable.name,
+          }
+        );
 
         return {
           added: [],
           unclassified: [],
           removed: [],
           reclassified: [],
+        };
+      } else if (!previousTable) {
+        logger.info(
+          "Unable to find previous table, assuming this is a new table so all entries are new",
+          {
+            tableName: currentTable.name,
+          }
+        );
+
+        const currentDefinitions = await getFromS3<AnyDefinitionTable>(
+          currentTable.s3Key
+        );
+        return {
+          added: Object.values(currentDefinitions).map((v) => v.hash),
+          removed: [],
+          unclassified: [],
+          reclassified: [],
+          modified: [],
         };
       }
 

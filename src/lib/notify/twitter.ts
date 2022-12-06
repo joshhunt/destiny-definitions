@@ -133,11 +133,12 @@ export async function notifyTwitterDone(
 }
 
 const FLAVOR_TEXT_CHOICES = [
-  "The Witness has seen enough…",
-  "Enough.",
-  "A message rises from the Deep.",
-  "The Witness brings a message…",
-  "An ancient Lubraean artifact has been discovered…",
+  // "Beep boop",
+  "// PROTOCOL SQLITE v3.39.4 INITIATED",
+  "SELECT * FROM Engrams WHERE Name='Rasputin'",
+  ">REMOTE DATABASE UPDATE INITIATED",
+  "?>news about neptune",
+  "?>where is neomuna",
 ];
 
 export async function notifyTwitterStarting(manifest: DestinyManifest) {
@@ -152,3 +153,4 @@ export async function notifyTwitterStarting(manifest: DestinyManifest) {
     await postTweet("statuses/update", tweet);
   }
 }
+``;

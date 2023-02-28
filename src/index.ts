@@ -8,7 +8,6 @@ import notify, { sendInitialNotification } from "./lib/notify";
 import { getManifestId } from "./utils";
 import { archiveIndexHasVersion, getArchiveIndex } from "./lastVersion";
 import logger from "./lib/log";
-import { notifyMastodonStarting } from "./lib/notify/mastodon";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET;
@@ -20,7 +19,6 @@ if (!S3_BUCKET) {
 async function main() {
   const force = process.argv.some((v) => v.includes("force"));
   logger.info("Starting up", {
-    fakeVersion: "pre-30th",
     force,
     S3_BUCKET,
     LOCAL_S3: process.env.LOCAL_S3,

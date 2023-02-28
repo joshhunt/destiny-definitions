@@ -133,12 +133,17 @@ export async function notifyTwitterDone(
 }
 
 const FLAVOR_TEXT_CHOICES = [
-  // "Beep boop",
-  "// PROTOCOL SQLITE v3.39.4 INITIATED",
-  "SELECT * FROM Engrams WHERE Name='Rasputin'",
-  ">REMOTE DATABASE UPDATE INITIATED",
-  "?>news about neptune",
-  "?>where is neomuna",
+  "Beep boop",
+  "There's no turning back",
+  "At long last",
+  "There is no escape (from the API)",
+  "Our end begins. But hope hides in the API",
+  // "quinn@cloudark $> query_new_definitions",
+  // "// PROTOCOL SQLITE v3.39.4 INITIATED",
+  // "SELECT * FROM Engrams WHERE Name='Rasputin'",
+  // ">REMOTE DATABASE UPDATE INITIATED",
+  // "?>news about neptune",
+  // "?>where is neomuna",
 ];
 
 export async function notifyTwitterStarting(manifest: DestinyManifest) {

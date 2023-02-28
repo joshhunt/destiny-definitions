@@ -8,6 +8,7 @@ import notify, { sendInitialNotification } from "./lib/notify";
 import { getManifestId } from "./utils";
 import { archiveIndexHasVersion, getArchiveIndex } from "./lastVersion";
 import logger from "./lib/log";
+import { notifyMastodonStarting } from "./lib/notify/mastodon";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET;

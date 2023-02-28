@@ -43,10 +43,22 @@ export default async function httpGet<T = any>(
       });
     } catch (error) {
       lastError = error;
-      logger.warn("Exception from HTTP request", { error, url });
+      logger.warn("Exception from HTTP request", {
+        error: cleanHttpException(error),
+        url,
+      });
     }
   }
 
-  logger.error("Exhausted all HTTP attempts", { url, lastError });
+  logger.error("Exhausted all HTTP attempts", {
+    url,
+    lastError: cleanHttpException(lastError),
+  });
   throw new Error("Exhausted attempts fetching " + url);
+}
+
+function cleanHttpException(err: any) {
+  delete err.request;
+  delete err.response;
+  return err;
 }

@@ -61,7 +61,7 @@ async function uploadMobileWorldContent(
   const fileName = path.basename(mobileWorldContentPath);
   const s3Key = makeMobileWorldContentKey(manifestId, fileName);
 
-  await uploadToS3(s3Key, resp.data);
+  await uploadToS3(s3Key, resp.data, "application/zip", "public-read");
 
   return s3Key;
 }

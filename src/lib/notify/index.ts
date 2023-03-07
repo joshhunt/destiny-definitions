@@ -8,7 +8,7 @@ import {
   notifyDiscordStarting,
 } from "./discord";
 import { notifyTwitterDone, notifyTwitterStarting } from "./twitter";
-import { notifyMastodonStarting } from "./mastodon";
+import { notifyMastodonDone, notifyMastodonStarting } from "./mastodon";
 
 dotenv.config();
 
@@ -37,7 +37,7 @@ export default async function notify(
 
   await protect(async () => {
     logger.info("Sending Mastodon posts");
-    await notifyTwitterDone(manifest, diffData);
+    await notifyMastodonDone(manifest, diffData);
   }, "Mastodon");
 
   await protect(async () => {

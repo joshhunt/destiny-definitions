@@ -6,7 +6,7 @@ import logger from "./lib/log";
 
 dotenv.config();
 const S3_BUCKET = process.env.S3_BUCKET || "";
-const s3 = new AWS.S3();
+export const s3 = new AWS.S3();
 
 if (!S3_BUCKET || S3_BUCKET === "") {
   throw new Error("S3_BUCKET not defined");

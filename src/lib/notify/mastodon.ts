@@ -57,7 +57,7 @@ function getDiffTweets(
   });
 
   const tweetLimit = POST_CHAR_LIMIT - 15;
-  const link = `archive.destiny.report/version/${manifestId}`;
+  const link = `https://archive.destiny.report/version/${manifestId}`;
 
   const preamble = [
     `The Destiny Definitions database has been updated to version ${bungieVersionId}`,
@@ -144,7 +144,7 @@ const FLAVOR_TEXT_CHOICES = [
   "At long last",
   "There is no escape (from the API)",
   "Our end begins. But hope hides in the API",
-  // "quinn@cloudark $> query_new_definitions",
+  "quinn@cloudark $> query_new_definitions",
 ];
 
 export async function notifyMastodonStarting(manifest: DestinyManifest) {

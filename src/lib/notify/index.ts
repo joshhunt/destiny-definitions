@@ -7,8 +7,6 @@ import {
   notifyDiscordDone,
   notifyDiscordStarting,
 } from "./discord";
-import { notifyTwitterDone, notifyTwitterStarting } from "./twitter";
-import { notifyMastodonDone, notifyMastodonStarting } from "./mastodon";
 
 dotenv.config();
 
@@ -31,16 +29,6 @@ export default async function notify(
   }, "Discord");
 
   await protect(async () => {
-    logger.info("Sending Tweets");
-    await notifyTwitterDone(manifest, diffData);
-  }, "Twitter");
-
-  await protect(async () => {
-    logger.info("Sending Mastodon posts");
-    await notifyMastodonDone(manifest, diffData);
-  }, "Mastodon");
-
-  await protect(async () => {
     logger.info("Detailed Discord notification");
     await notifyDiscordDetailed(manifest, diffData);
   }, "Discord");
@@ -56,14 +44,4 @@ export async function sendInitialNotification(manifest: DestinyManifest) {
     await notifyDiscordStarting(manifest);
     logger.info("Done sending initial Discord notification");
   }, "Discord");
-
-  await protect(async () => {
-    logger.info("Sending initial Twitter notification");
-    await notifyTwitterStarting(manifest);
-  }, "Twitter");
-
-  await protect(async () => {
-    logger.info("Sending initial Mastodon notification");
-    await notifyMastodonStarting(manifest);
-  }, "Mastodon");
 }

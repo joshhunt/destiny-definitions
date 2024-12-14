@@ -127,7 +127,6 @@ export async function notifyDiscordDone(
   const embed = new MessageEmbed()
     .setTitle("Definitions have updated!")
     .setColor(GREEN)
-    .setURL(`https://archive.destiny.report/version/${manifestId}`)
     .setDescription([
       `**ID:** ${manifestId}`,
       `**Version:** ${manifest.version}`,

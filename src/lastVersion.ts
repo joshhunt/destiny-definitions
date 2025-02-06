@@ -1,5 +1,4 @@
 import logger from "./lib/log";
-import http from "./lib/http";
 import { getFromS3 } from "./s3";
 
 interface ArchiveIndexVersion {
@@ -11,7 +10,7 @@ interface ArchiveIndexVersion {
 }
 
 export async function getArchiveIndex() {
-  return await getFromS3("index.json");
+  return (await getFromS3("index.json")) as any;
 }
 
 export async function archiveIndexHasVersion(

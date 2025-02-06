@@ -1,5 +1,6 @@
 import logger from "./lib/log";
 import http from "./lib/http";
+import { getFromS3 } from "./s3";
 
 interface ArchiveIndexVersion {
   id: string;
@@ -10,11 +11,7 @@ interface ArchiveIndexVersion {
 }
 
 export async function getArchiveIndex() {
-  const resp = await http<ArchiveIndexVersion[]>(
-    "https://destiny-definitions.s3-eu-west-1.amazonaws.com/index.json"
-  );
-
-  return resp.data;
+  return await getFromS3("index.json");
 }
 
 export async function archiveIndexHasVersion(
